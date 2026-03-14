@@ -3,19 +3,82 @@ import SlideshowKit
 
 struct PreviewPanel: View {
     var slideshow: Slideshow
+    @Environment(\.imageCache) private var imageCache
+    @State private var topHeight: CGFloat = 300
+    @State private var previewImage: NSImage?
 
     var body: some View {
-        VStack {
-            if let slide = slideshow.selectedSlide {
-                Text(slide.displayName)
-                    .font(.title3)
-                    .foregroundStyle(.white)
-            } else {
-                Text("No slide selected")
-                    .foregroundStyle(.secondary)
-            }
+        VStack(spacing: 0) {
+            imagePreview
+                .frame(height: topHeight)
+
+            DraggableDivider(
+                topHeight: $topHeight,
+                minTopHeight: 100,
+                maxTopHeight: 500
+            )
+
+            notesPreview
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(.black)
+        .task(id: slideshow.selectedSlideID) {
+            await loadImage()
+        }
+    }
+
+    @ViewBuilder
+    private var imagePreview: some View {
+        if let slide = slideshow.selectedSlide {
+            VStack(spacing: 4) {
+                if let image = previewImage {
+                    Image(nsImage: image)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else {
+                    ProgressView()
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+
+                if let caption = slide.sidecar?.caption {
+                    Text(caption)
+                        .font(.title3)
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 8)
+                        .padding(.bottom, 4)
+                }
+            }
+        } else {
+            Color.black
+        }
+    }
+
+    private func loadImage() async {
+        guard let slide = slideshow.selectedSlide else {
+            previewImage = nil
+            return
+        }
+        let url = slide.fileURL
+        let image = await imageCache.thumbnailNSImage(for: url)
+        previewImage = image
+    }
+
+    @ViewBuilder
+    private var notesPreview: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 8) {
+                if let sidecar = slideshow.selectedSlide?.sidecar {
+                    if sidecar.source != nil {
+                        SourceTextView(sidecar: sidecar)
+                    }
+                    if !sidecar.notes.isEmpty {
+                        MarkdownRenderedView(markdown: sidecar.notes)
+                    }
+                }
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .background(Color(nsColor: .controlBackgroundColor))
     }
 }
