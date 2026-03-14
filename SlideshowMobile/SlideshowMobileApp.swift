@@ -2,17 +2,6 @@ import SwiftUI
 import UniformTypeIdentifiers
 import SlideshowKit
 
-private struct ImageCacheKey: EnvironmentKey {
-    static let defaultValue = ImageCache()
-}
-
-extension EnvironmentValues {
-    var imageCache: ImageCache {
-        get { self[ImageCacheKey.self] }
-        set { self[ImageCacheKey.self] = newValue }
-    }
-}
-
 @main
 struct SlideshowMobileApp: App {
     @State private var slideshow = Slideshow()
