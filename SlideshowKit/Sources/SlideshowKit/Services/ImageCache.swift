@@ -16,6 +16,8 @@ public actor ImageCache {
     private let thumbnailCache = NSCache<NSURL, CGImage>()
     private let fullImageCache = NSCache<NSURL, CGImage>()
     private let thumbnailGenerator: ThumbnailGenerator
+    private var inFlightThumbnails: [URL: Task<CGImage?, Never>] = [:]
+    private var inFlightFullImages: [URL: Task<CGImage?, Never>] = [:]
 
     public init(thumbnailPixelSize: Int = 1024, fullCacheCountLimit: Int = 10) {
         self.thumbnailGenerator = ThumbnailGenerator(maxPixelSize: thumbnailPixelSize)
@@ -29,8 +31,9 @@ public actor ImageCache {
     public func thumbnail(for url: URL) async -> CGImage? {
         let key = url as NSURL
         if let cached = thumbnailCache.object(forKey: key) { return cached }
+        if let existing = inFlightThumbnails[url] { return await existing.value }
         let generator = thumbnailGenerator
-        let image: CGImage? = await Task.detached {
+        let task = Task.detached { () -> CGImage? in
             if let cg = generator.generateThumbnail(from: url) { return cg }
             #if canImport(AppKit)
             guard let nsImage = NSImage(contentsOf: url),
@@ -41,7 +44,10 @@ public actor ImageCache {
             #else
             return nil
             #endif
-        }.value
+        }
+        inFlightThumbnails[url] = task
+        let image = await task.value
+        inFlightThumbnails[url] = nil
         if let image {
             thumbnailCache.setObject(image, forKey: key)
         }
@@ -54,7 +60,8 @@ public actor ImageCache {
     public func fullImage(for url: URL) async -> CGImage? {
         let key = url as NSURL
         if let cached = fullImageCache.object(forKey: key) { return cached }
-        let image: CGImage? = await Task.detached {
+        if let existing = inFlightFullImages[url] { return await existing.value }
+        let task = Task.detached { () -> CGImage? in
             if let source = CGImageSourceCreateWithURL(url as CFURL, nil),
                let cg = CGImageSourceCreateImageAtIndex(source, 0, nil) {
                 return cg
@@ -68,7 +75,10 @@ public actor ImageCache {
             #else
             return nil
             #endif
-        }.value
+        }
+        inFlightFullImages[url] = task
+        let image = await task.value
+        inFlightFullImages[url] = nil
         if let image {
             fullImageCache.setObject(image, forKey: key)
         }

@@ -18,7 +18,7 @@ struct SlideshowMobileApp: App {
     @State private var slideshow = Slideshow()
     @State private var showFileImporter = false
     @State private var accessingSecurityScope = false
-    private let imageCache = ImageCache()
+    @State private var imageCache = ImageCache()
 
     var body: some Scene {
         WindowGroup {
