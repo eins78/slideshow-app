@@ -32,6 +32,24 @@ open `.slideshow` bundle from Files → scan slides → display images → swipe
    - Updated concurrency + accessibility rules
    - Added `scripts/verify-build.sh`
 
+5. `46e1a23` — fix simplify findings
+   - Deduplicated ImageCacheKey, fixed stale doc comment, concurrent preload
+
+6. `e707194` — fix first AI review findings
+   - Removed `import SwiftUI` from SlideshowKit, action button, removed hardcoded team
+
+7. `ce514e4` — fix second AI review findings
+   - In-flight task deduplication (thundering herd), `@State` imageCache
+
+## Review Loop
+
+| Round | Verdict | Fixed |
+|-------|---------|-------|
+| `/simplify` | 4 findings | dedup, stale comment, concurrent preload |
+| `/ai-review` #1 | REQUEST_CHANGES | SwiftUI in Kit, action button, hardcoded team |
+| `/ai-review` #2 | REQUEST_CHANGES | @State imageCache, thundering herd |
+| `/ai-review` #3 | APPROVE | EXIF orientation noted for follow-up |
+
 ## Key Decisions & Findings
 
 - **TabView with `.page` style** for swipe navigation — simplest approach, proves the interaction model
@@ -50,3 +68,4 @@ open `.slideshow` bundle from Files → scan slides → display images → swipe
 - No settings
 - No error handling beyond basic guards
 - No "new slideshow" creation
+- EXIF orientation handling for rotated images (flagged in review)
