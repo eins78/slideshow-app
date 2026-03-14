@@ -3,6 +3,7 @@ options:
   bundleIdPrefix: is.kte
   deploymentTarget:
     macOS: "26.0"
+    iOS: "26.0"
   xcodeVersion: "26.3"
   generateEmptyDirectories: true
   groupSortPosition: top
@@ -30,6 +31,21 @@ targets:
         INFOPLIST_FILE: Slideshow/Info.plist
         CODE_SIGN_ENTITLEMENTS: Slideshow/Slideshow.entitlements
         GENERATE_INFOPLIST_FILE: true
+    dependencies:
+      - package: SlideshowKit
+
+  SlideshowMobile:
+    type: application
+    platform: iOS
+    sources:
+      - path: SlideshowMobile
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: is.kte.slideshow.mobile
+        INFOPLIST_FILE: SlideshowMobile/Info.plist
+        GENERATE_INFOPLIST_FILE: false
+        SUPPORTED_PLATFORMS: "iphoneos iphonesimulator"
+        SUPPORTS_MACCATALYST: false
     dependencies:
       - package: SlideshowKit
 

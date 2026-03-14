@@ -2,6 +2,9 @@ import Foundation
 #if canImport(AppKit)
 import AppKit
 #endif
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// Thread-safe image cache with thumbnail and full-resolution tiers.
 /// Shared across views via SwiftUI environment to prevent duplicate loads.
@@ -77,6 +80,20 @@ public actor ImageCache {
     public func fullNSImage(for url: URL) -> NSImage? {
         guard let cg = fullImage(for: url) else { return nil }
         return NSImage(cgImage: cg, size: .zero)
+    }
+    #endif
+
+    #if canImport(UIKit)
+    /// Convenience: thumbnail as UIImage.
+    public func thumbnailUIImage(for url: URL) -> UIImage? {
+        guard let cg = thumbnail(for: url) else { return nil }
+        return UIImage(cgImage: cg)
+    }
+
+    /// Convenience: full-resolution as UIImage.
+    public func fullUIImage(for url: URL) -> UIImage? {
+        guard let cg = fullImage(for: url) else { return nil }
+        return UIImage(cgImage: cg)
     }
     #endif
 
