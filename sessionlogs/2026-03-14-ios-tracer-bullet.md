@@ -23,6 +23,15 @@ open `.slideshow` bundle from Files → scan slides → display images → swipe
    - Added UILaunchScreen + UISupportedInterfaceOrientations
    - Added DEVELOPMENT_TEAM (X8VJSFQ9QC) and CODE_SIGN_STYLE to project.yml
 
+3. `3c711f3` — fix concurrency and accessibility issues
+   - ImageCache: moved file I/O to `Task.detached`, actor only manages cache
+   - Added accessibility labels/traits to SlideImageView and ThumbnailView
+
+4. `bf0d0b8` — add build guardrails: warnings-as-errors, rules, verify script
+   - `SWIFT_TREAT_WARNINGS_AS_ERRORS: true` in project.yml
+   - Updated concurrency + accessibility rules
+   - Added `scripts/verify-build.sh`
+
 ## Key Decisions & Findings
 
 - **TabView with `.page` style** for swipe navigation — simplest approach, proves the interaction model
