@@ -96,7 +96,7 @@ public final class Slideshow {
 
             let name = reorderer.deconflictedName(url.lastPathComponent, existing: existingNames)
             let dest = folderURL.appending(path: name)
-            try? fm.copyItem(at: url, to: dest)
+            guard (try? fm.copyItem(at: url, to: dest)) != nil else { continue }
 
             let slide = Slide(fileURL: dest)
             if let rv = try? dest.resourceValues(forKeys: [.fileSizeKey]),
