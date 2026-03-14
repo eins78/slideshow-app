@@ -6,6 +6,7 @@ struct PreviewPanel: View {
     @Environment(\.imageCache) private var imageCache
     @State private var topHeight: CGFloat = 300
     @State private var previewImage: NSImage?
+    @State private var imageLoaded = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -35,6 +36,12 @@ struct PreviewPanel: View {
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if imageLoaded {
+                    // Load completed but returned nil — show placeholder
+                    Image(systemName: "photo")
+                        .font(.system(size: 48))
+                        .foregroundStyle(.gray)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     ProgressView()
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -54,13 +61,16 @@ struct PreviewPanel: View {
     }
 
     private func loadImage() async {
+        imageLoaded = false
+        previewImage = nil
         guard let slide = slideshow.selectedSlide else {
-            previewImage = nil
+            imageLoaded = true
             return
         }
         let url = slide.fileURL
         let image = await imageCache.thumbnailNSImage(for: url)
         previewImage = image
+        imageLoaded = true
     }
 
     @ViewBuilder

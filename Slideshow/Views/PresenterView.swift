@@ -9,6 +9,7 @@ struct PresenterView: View {
     @State private var showNotes = true
     @State private var currentImage: NSImage?
     @State private var nextImage: NSImage?
+    @State private var imageLoaded = false
 
     var body: some View {
         ZStack {
@@ -26,6 +27,12 @@ struct PresenterView: View {
                                 .resizable().aspectRatio(contentMode: .fit)
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                                 .border(Color.accentColor, width: 1)
+                        } else if imageLoaded, slideshow.selectedSlide != nil {
+                            // Load completed but returned nil — show placeholder
+                            Image(systemName: "photo")
+                                .font(.system(size: 48))
+                                .foregroundStyle(.gray)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
                         } else if slideshow.selectedSlide != nil {
                             ProgressView()
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -91,6 +98,10 @@ struct PresenterView: View {
 
     // Concurrent loading via async let
     private func loadImages() async {
+        imageLoaded = false
+        currentImage = nil
+        nextImage = nil
+
         let currentURL = slideshow.selectedSlide?.fileURL
         let nextURL = nextSlide?.fileURL
         let cache = imageCache
@@ -107,6 +118,7 @@ struct PresenterView: View {
         let (c, n) = await (current, next)
         currentImage = c
         nextImage = n
+        imageLoaded = true
 
         // Preload 2 slides ahead for zero-latency transitions
         if let idx = slideshow.selectedIndex {

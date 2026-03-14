@@ -22,22 +22,48 @@ public actor ImageCache {
     }
 
     /// Get a thumbnail (fast, cached, max 1024px).
+    /// Falls back to NSImage when CGImageSource fails (e.g., unsupported formats).
     public func thumbnail(for url: URL) -> CGImage? {
         let key = url as NSURL
         if let cached = thumbnailCache.object(forKey: key) { return cached }
-        guard let image = thumbnailGenerator.generateThumbnail(from: url) else { return nil }
-        thumbnailCache.setObject(image, forKey: key)
-        return image
+        if let image = thumbnailGenerator.generateThumbnail(from: url) {
+            thumbnailCache.setObject(image, forKey: key)
+            return image
+        }
+        #if canImport(AppKit)
+        // Fallback: NSImage supports additional formats beyond CGImageSource
+        guard let nsImage = NSImage(contentsOf: url),
+              let cg = nsImage.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+            return nil
+        }
+        thumbnailCache.setObject(cg, forKey: key)
+        return cg
+        #else
+        return nil
+        #endif
     }
 
     /// Get full-resolution image (cached LRU, limited count).
+    /// Falls back to NSImage when CGImageSource fails (e.g., unsupported formats).
     public func fullImage(for url: URL) -> CGImage? {
         let key = url as NSURL
         if let cached = fullImageCache.object(forKey: key) { return cached }
-        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
-              let image = CGImageSourceCreateImageAtIndex(source, 0, nil) else { return nil }
-        fullImageCache.setObject(image, forKey: key)
-        return image
+        if let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+           let image = CGImageSourceCreateImageAtIndex(source, 0, nil) {
+            fullImageCache.setObject(image, forKey: key)
+            return image
+        }
+        #if canImport(AppKit)
+        // Fallback: NSImage supports additional formats beyond CGImageSource
+        guard let nsImage = NSImage(contentsOf: url),
+              let cg = nsImage.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+            return nil
+        }
+        fullImageCache.setObject(cg, forKey: key)
+        return cg
+        #else
+        return nil
+        #endif
     }
 
     #if canImport(AppKit)
