@@ -36,7 +36,7 @@ These rules apply when writing or modifying test files in `SlideshowKit/Tests/`.
 
 These areas MUST have tests before their implementation is considered complete:
 
-- **SidecarParser**: frontmatter parsing, no-frontmatter fallback (heading = caption), malformed YAML fallback, CRLF normalization, unknown key preservation
+- **SidecarParser**: frontmatter parsing, no-frontmatter fallback (first line = caption), malformed YAML fallback, CRLF normalization, unknown key preservation
 - **SidecarWriter**: round-trip with SidecarParser — parse then write must produce semantically identical output
 - **FileReorderer**: no-op skip (source == destination), collision-free rename via temp UUIDs, correct `\d{3}--` prefix numbering
 - **FolderScanner**: image↔sidecar matching, case-insensitive matching, ignoring orphan `.md` files, sorting by filename

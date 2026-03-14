@@ -1,0 +1,34 @@
+name: Slideshow
+options:
+  bundleIdPrefix: is.kte
+  deploymentTarget:
+    macOS: "26.0"
+  xcodeVersion: "26.3"
+  generateEmptyDirectories: true
+  groupSortPosition: top
+
+settings:
+  base:
+    SWIFT_VERSION: "6"
+    SWIFT_STRICT_CONCURRENCY: complete
+
+packages:
+  SlideshowKit:
+    path: SlideshowKit
+
+targets:
+  Slideshow:
+    type: application
+    platform: macOS
+    sources:
+      - path: Slideshow
+        excludes:
+          - "*.entitlements"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: is.kte.slideshow
+        INFOPLIST_FILE: Slideshow/Info.plist
+        CODE_SIGN_ENTITLEMENTS: Slideshow/Slideshow.entitlements
+        GENERATE_INFOPLIST_FILE: true
+    dependencies:
+      - package: SlideshowKit
