@@ -33,7 +33,7 @@ struct SlideRowView: View {
                     .foregroundStyle(.secondary)
             }
         }
-        .accessibilityElement(children: .ignore)
+        .accessibilityElement(children: .combine)
         .accessibilityLabel("\(index + 1). \(slide.displayName)")
     }
 }

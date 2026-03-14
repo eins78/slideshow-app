@@ -36,6 +36,7 @@ struct PreviewPanel: View {
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .accessibilityLabel(slide.displayName)
                 } else if imageLoaded {
                     // Load completed but returned nil — show placeholder
                     Image(systemName: "photo")
