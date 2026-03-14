@@ -48,8 +48,9 @@ public struct FolderScanner: Sendable {
             let slide = Slide(fileURL: imageURL, sidecar: sidecar)
 
             // Read file size
-            if let resourceValues = try? imageURL.resourceValues(forKeys: [.fileSizeKey]) {
-                slide.fileSize = Int64(resourceValues.fileSize ?? 0)
+            if let resourceValues = try? imageURL.resourceValues(forKeys: [.fileSizeKey]),
+               let size = resourceValues.fileSize {
+                slide.fileSize = Int64(size)
             }
 
             slides.append(slide)

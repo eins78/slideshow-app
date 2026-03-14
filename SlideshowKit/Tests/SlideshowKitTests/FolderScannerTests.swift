@@ -22,7 +22,7 @@ struct FolderScannerTests {
     func sortsByFilename() async throws {
         let slides = try await scanner.scan(folderURL: fixtureURL())
         let names = slides.map { $0.fileURL.lastPathComponent }
-        #expect(names == names.sorted())
+        #expect(names == ["001--intro.jpg", "002--sunset.jpg", "003--portrait.jpg"])
     }
 
     @Test("Matches sidecar to image")
