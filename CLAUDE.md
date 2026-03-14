@@ -137,6 +137,12 @@ Domain-specific rules in `.claude/rules/`:
 - `swiftui-patterns.md` — SwiftUI state management and view rules
 - `testing.md` — Swift Testing framework conventions
 - `git-and-workflow.md` — git conventions, review workflow, plot readiness
+- `accessibility.md` — VoiceOver, keyboard nav, Dynamic Type, click targets
+- `performance.md` — main thread, image optimization, caching, SwiftUI rendering
+
+Review agents in `.claude/agents/` (dispatch during review):
+- `a11y-reviewer` — active accessibility audit of changed view files
+- `performance-reviewer` — active performance audit of changed code
 
 ### Skills
 
