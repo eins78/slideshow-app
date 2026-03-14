@@ -58,11 +58,16 @@ struct SlideshowApp: App {
     }
 
     private func openSlideshow(at url: URL) async {
+        // Security-scoped access required for sandboxed app
+        guard url.startAccessingSecurityScopedResource() else { return }
+        defer { url.stopAccessingSecurityScopedResource() }
+
         let scanner = FolderScanner()
-        slideshow.folderURL = url
         do {
-            slideshow.slides = try await scanner.scan(folderURL: url)
-            if let first = slideshow.slides.first {
+            let slides = try await scanner.scan(folderURL: url)
+            slideshow.folderURL = url
+            slideshow.slides = slides
+            if let first = slides.first {
                 slideshow.selectedSlideID = first.id
             }
         } catch {

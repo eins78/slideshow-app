@@ -2,7 +2,7 @@ import SwiftUI
 import SlideshowKit
 
 struct PreviewPanel: View {
-    @Bindable var slideshow: Slideshow
+    var slideshow: Slideshow
 
     var body: some View {
         VStack {
