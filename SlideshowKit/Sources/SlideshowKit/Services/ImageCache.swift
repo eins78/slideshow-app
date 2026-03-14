@@ -2,6 +2,9 @@ import Foundation
 #if canImport(AppKit)
 import AppKit
 #endif
+#if canImport(UIKit)
+import UIKit
+#endif
 
 /// Thread-safe image cache with thumbnail and full-resolution tiers.
 /// Shared across views via SwiftUI environment to prevent duplicate loads.
@@ -22,66 +25,87 @@ public actor ImageCache {
     }
 
     /// Get a thumbnail (fast, cached, max 1024px).
+    /// I/O runs on a detached task to avoid blocking the cooperative thread pool.
     /// Falls back to NSImage when CGImageSource fails (e.g., unsupported formats).
-    public func thumbnail(for url: URL) -> CGImage? {
+    public func thumbnail(for url: URL) async -> CGImage? {
         let key = url as NSURL
         if let cached = thumbnailCache.object(forKey: key) { return cached }
-        if let image = thumbnailGenerator.generateThumbnail(from: url) {
-            thumbnailCache.setObject(image, forKey: key)
-            return image
-        }
-        #if canImport(AppKit)
-        // Fallback: NSImage supports additional formats beyond CGImageSource
-        guard let nsImage = NSImage(contentsOf: url),
-              let cg = nsImage.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+        let generator = thumbnailGenerator
+        let image: CGImage? = await Task.detached {
+            if let cg = generator.generateThumbnail(from: url) { return cg }
+            #if canImport(AppKit)
+            guard let nsImage = NSImage(contentsOf: url),
+                  let cg = nsImage.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+                return nil
+            }
+            return cg
+            #else
             return nil
+            #endif
+        }.value
+        if let image {
+            thumbnailCache.setObject(image, forKey: key)
         }
-        thumbnailCache.setObject(cg, forKey: key)
-        return cg
-        #else
-        return nil
-        #endif
+        return image
     }
 
     /// Get full-resolution image (cached LRU, limited count).
+    /// I/O runs on a detached task to avoid blocking the cooperative thread pool.
     /// Falls back to NSImage when CGImageSource fails (e.g., unsupported formats).
-    public func fullImage(for url: URL) -> CGImage? {
+    public func fullImage(for url: URL) async -> CGImage? {
         let key = url as NSURL
         if let cached = fullImageCache.object(forKey: key) { return cached }
-        if let source = CGImageSourceCreateWithURL(url as CFURL, nil),
-           let image = CGImageSourceCreateImageAtIndex(source, 0, nil) {
-            fullImageCache.setObject(image, forKey: key)
-            return image
-        }
-        #if canImport(AppKit)
-        // Fallback: NSImage supports additional formats beyond CGImageSource
-        guard let nsImage = NSImage(contentsOf: url),
-              let cg = nsImage.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+        let image: CGImage? = await Task.detached {
+            if let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+               let cg = CGImageSourceCreateImageAtIndex(source, 0, nil) {
+                return cg
+            }
+            #if canImport(AppKit)
+            guard let nsImage = NSImage(contentsOf: url),
+                  let cg = nsImage.cgImage(forProposedRect: nil, context: nil, hints: nil) else {
+                return nil
+            }
+            return cg
+            #else
             return nil
+            #endif
+        }.value
+        if let image {
+            fullImageCache.setObject(image, forKey: key)
         }
-        fullImageCache.setObject(cg, forKey: key)
-        return cg
-        #else
-        return nil
-        #endif
+        return image
     }
 
     #if canImport(AppKit)
     /// Convenience: thumbnail as NSImage.
-    public func thumbnailNSImage(for url: URL) -> NSImage? {
-        guard let cg = thumbnail(for: url) else { return nil }
+    public func thumbnailNSImage(for url: URL) async -> NSImage? {
+        guard let cg = await thumbnail(for: url) else { return nil }
         return NSImage(cgImage: cg, size: .zero)
     }
 
     /// Convenience: full-resolution as NSImage.
-    public func fullNSImage(for url: URL) -> NSImage? {
-        guard let cg = fullImage(for: url) else { return nil }
+    public func fullNSImage(for url: URL) async -> NSImage? {
+        guard let cg = await fullImage(for: url) else { return nil }
         return NSImage(cgImage: cg, size: .zero)
     }
     #endif
 
+    #if canImport(UIKit)
+    /// Convenience: thumbnail as UIImage.
+    public func thumbnailUIImage(for url: URL) async -> UIImage? {
+        guard let cg = await thumbnail(for: url) else { return nil }
+        return UIImage(cgImage: cg)
+    }
+
+    /// Convenience: full-resolution as UIImage.
+    public func fullUIImage(for url: URL) async -> UIImage? {
+        guard let cg = await fullImage(for: url) else { return nil }
+        return UIImage(cgImage: cg)
+    }
+    #endif
+
     /// Preload thumbnails for upcoming slides (call from presentation mode).
-    public func preloadThumbnails(for urls: [URL]) {
-        for url in urls { _ = thumbnail(for: url) }
+    public func preloadThumbnails(for urls: [URL]) async {
+        for url in urls { _ = await thumbnail(for: url) }
     }
 }
