@@ -81,6 +81,37 @@ public final class Slideshow {
         }
     }
 
+    /// Add images from external URLs into the slideshow folder.
+    /// Incremental — no full re-scan, preserves loaded EXIF and selection.
+    public func addImages(from urls: [URL]) {
+        guard let folderURL else { return }
+        let reorderer = FileReorderer()
+        let parser = SidecarParser()
+        let fm = FileManager.default
+        var existingNames = Set(slides.map { $0.fileURL.lastPathComponent })
+
+        for url in urls {
+            guard url.startAccessingSecurityScopedResource() else { continue }
+            defer { url.stopAccessingSecurityScopedResource() }
+
+            let name = reorderer.deconflictedName(url.lastPathComponent, existing: existingNames)
+            let dest = folderURL.appending(path: name)
+            try? fm.copyItem(at: url, to: dest)
+
+            let slide = Slide(fileURL: dest)
+            if let rv = try? dest.resourceValues(forKeys: [.fileSizeKey]),
+               let size = rv.fileSize {
+                slide.fileSize = Int64(size)
+            }
+            let sidecarURL = dest.appendingPathExtension("md")
+            if fm.fileExists(atPath: sidecarURL.path(percentEncoded: false)) {
+                slide.sidecar = parser.parse(url: sidecarURL)
+            }
+            slides.append(slide)
+            existingNames.insert(name)
+        }
+    }
+
     /// Move a slide up or down by one position.
     public func moveSlide(_ slide: Slide, direction: Int) {
         guard let idx = slides.firstIndex(where: { $0.id == slide.id }) else { return }
