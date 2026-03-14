@@ -13,24 +13,24 @@ extension EnvironmentValues {
     }
 }
 
-/// FocusedValue for the per-window "open slideshow" action.
-/// Allows App-level menu commands to trigger document-level navigation.
+/// FocusedValue for triggering "New Slideshow" from the App menu.
+/// The App sets this to true; the focused DocumentView observes and acts.
 /// See: https://developer.apple.com/documentation/swiftui/focusedvaluekey
-struct OpenSlideshowURLKey: FocusedValueKey {
-    typealias Value = (URL) -> Void
+struct CreateNewSlideshowKey: FocusedValueKey {
+    typealias Value = Binding<Bool>
 }
 
 extension FocusedValues {
-    var openSlideshowURL: ((URL) -> Void)? {
-        get { self[OpenSlideshowURLKey.self] }
-        set { self[OpenSlideshowURLKey.self] = newValue }
+    var createNewSlideshow: Binding<Bool>? {
+        get { self[CreateNewSlideshowKey.self] }
+        set { self[CreateNewSlideshowKey.self] = newValue }
     }
 }
 
 @main
 struct SlideshowApp: App {
     private let imageCache = ImageCache()
-    @FocusedValue(\.openSlideshowURL) private var openSlideshowURL
+    @FocusedValue(\.createNewSlideshow) private var createNewSlideshow
 
     var body: some Scene {
         WindowGroup {
@@ -42,7 +42,7 @@ struct SlideshowApp: App {
         .commands {
             CommandGroup(after: .newItem) {
                 Button("New Slideshow...") {
-                    createNewSlideshow()
+                    createNewSlideshow?.wrappedValue = true
                 }
                 .keyboardShortcut("n")
             }
@@ -52,18 +52,6 @@ struct SlideshowApp: App {
             SettingsView()
         }
     }
-
-    private func createNewSlideshow() {
-        let panel = NSSavePanel()
-        panel.allowedContentTypes = [UTType("is.kte.slideshow") ?? .folder]
-        panel.nameFieldStringValue = "Untitled.slideshow"
-        panel.begin { response in
-            guard response == .OK, let url = panel.url else { return }
-            try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
-            NSDocumentController.shared.noteNewRecentDocumentURL(url)
-            self.openSlideshowURL?(url)
-        }
-    }
 }
 
 /// Per-window document root that owns its own slideshow state.
@@ -71,9 +59,11 @@ struct SlideshowApp: App {
 struct SlideshowDocumentView: View {
     @State private var slideshow = Slideshow()
     @State private var showFileImporter = false
+    @State private var showNewSlideshowPanel = false
     @State private var showPresenter = false
     @State private var presenterWindow: NSWindow?
     @State private var bookmarkManager = BookmarkManager()
+    @State private var scanError: Error?
     @Environment(\.imageCache) private var imageCache
 
     var body: some View {
@@ -88,12 +78,18 @@ struct SlideshowDocumentView: View {
             }
         }
         .environment(bookmarkManager)
-        .focusedSceneValue(\.openSlideshowURL) { [self] url in
-            Task { await openSlideshow(at: url) }
+        .focusedSceneValue(\.createNewSlideshow, $showNewSlideshowPanel)
+        .onChange(of: showNewSlideshowPanel) {
+            if showNewSlideshowPanel {
+                showNewSlideshowPanel = false
+                createNewSlideshow()
+            }
         }
         .task {
             if CommandLine.arguments.contains("--ui-test-fixtures") {
                 await loadUITestFixtures()
+            } else if CommandLine.arguments.contains("--ui-test-add-images") {
+                await loadUITestAddImages()
             }
         }
         .fileImporter(
@@ -108,6 +104,16 @@ struct SlideshowDocumentView: View {
         .onChange(of: showPresenter) {
             if showPresenter {
                 openPresenterWindow()
+            }
+        }
+        .alert("Could not open slideshow", isPresented: Binding(
+            get: { scanError != nil },
+            set: { if !$0 { scanError = nil } }
+        )) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            if let scanError {
+                Text(scanError.localizedDescription)
             }
         }
         .frame(minWidth: 600, minHeight: 400)
@@ -194,6 +200,39 @@ struct SlideshowDocumentView: View {
         await openSlideshow(at: tmpDir)
     }
 
+    /// Create an empty slideshow and add images programmatically.
+    /// Tests the addImages(from:) security-scope fix end-to-end.
+    /// Activated by launch argument `--ui-test-add-images`.
+    private func loadUITestAddImages() async {
+        let fm = FileManager.default
+        let tmpDir = fm.temporaryDirectory
+            .appending(path: "slideshow-ui-test-add-\(ProcessInfo.processInfo.processIdentifier)")
+        try? fm.removeItem(at: tmpDir)
+        try? fm.createDirectory(at: tmpDir, withIntermediateDirectories: true)
+
+        // Open the empty slideshow first
+        await openSlideshow(at: tmpDir)
+
+        // Find example images from the source tree
+        let examplesDir = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .appending(path: "Examples/Paintings That Tell Secrets.slideshow")
+
+        if fm.fileExists(atPath: examplesDir.path(percentEncoded: false)) {
+            let contents = (try? fm.contentsOfDirectory(
+                at: examplesDir,
+                includingPropertiesForKeys: nil
+            )) ?? []
+            let imageURLs = contents.filter { url in
+                let ext = url.pathExtension.lowercased()
+                return ["jpg", "jpeg", "png", "tiff", "heic"].contains(ext)
+            }
+            if !imageURLs.isEmpty {
+                slideshow.addImages(from: imageURLs)
+            }
+        }
+    }
+
     private func openSlideshow(at url: URL) async {
         // Stop accessing the previous slideshow's security-scoped resource
         // before starting the new one. Must balance start/stop calls.
@@ -221,7 +260,7 @@ struct SlideshowDocumentView: View {
             }
         } catch {
             if didStartAccessing { url.stopAccessingSecurityScopedResource() }
-            print("Failed to scan folder: \(error)")
+            scanError = error
         }
     }
 }
