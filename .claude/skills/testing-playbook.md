@@ -9,7 +9,7 @@ Empirically verified reference for testing a macOS SwiftUI slideshow app with an
 
 ## Test Pyramid
 
-1. **Unit tests** (SlideshowKit): `cd SlideshowKit && swift test` -- 62 tests, 8 suites, Swift Testing framework
+1. **Unit tests** (SlideshowKit): `cd SlideshowKit && swift test` -- 63 tests, 8 suites, Swift Testing framework
 2. **Runtime probes** (ExecuteSnippet): test models/services in Xcode's playground context
 3. **UI tests** (XCUITest): `xcodebuild test -scheme Slideshow -destination 'platform=macOS' -only-testing:SlideshowUITests` -- 6 tests
 4. **Preview rendering** (RenderPreview): visual verification of SwiftUI views
@@ -37,7 +37,7 @@ Empirically verified reference for testing a macOS SwiftUI slideshow app with an
 - XCUITest from CLI -- launches app automatically, no accessibility permission needed
 - `--ui-test-fixtures` launch argument -- loads Examples slideshow, bypasses file picker
 - `ExecuteSnippet` -- can test any code in context of any source file (use `Slideshow/SlideshowApp.swift` for access to SlideshowKit types)
-- `RenderPreview` -- renders #Preview macros as PNGs (9/11 views work)
+- `RenderPreview` -- renders #Preview macros as PNGs (10/12 previews render)
 - `performAccessibilityAudit()` -- catches real issues (20 found in first run)
 - `XcodeRefreshCodeIssuesInFile` -- zero-build diagnostics on individual files
 
