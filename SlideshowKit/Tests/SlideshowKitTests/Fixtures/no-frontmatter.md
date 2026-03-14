@@ -1,4 +1,4 @@
-# Sunset Caption
+Sunset Caption
 
 These are the presenter notes.
 

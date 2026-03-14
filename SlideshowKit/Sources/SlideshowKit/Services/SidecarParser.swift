@@ -23,8 +23,8 @@ public struct SidecarParser: Sendable {
             return SidecarData(notes: trimmed)
         }
 
-        // No frontmatter: try heading fallback
-        return parseHeadingFallback(trimmed)
+        // No frontmatter: first line = caption, rest = notes
+        return parsePlainText(trimmed)
     }
 
     /// Parse a sidecar file at the given URL.
@@ -88,29 +88,24 @@ public struct SidecarParser: Sendable {
         )
     }
 
-    /// Fallback: first # heading = caption, rest = notes.
-    /// Text before the heading is preserved in notes.
-    private func parseHeadingFallback(_ content: String) -> SidecarData {
+    /// Plain text fallback: first line = caption, blank line, then notes.
+    /// If the file is a single line, it becomes the caption with no notes.
+    private func parsePlainText(_ content: String) -> SidecarData {
         let lines = content.components(separatedBy: "\n")
+        let caption = lines[0].trimmingCharacters(in: .whitespaces)
 
-        for (i, line) in lines.enumerated() {
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            if trimmed.hasPrefix("# ") {
-                let caption = String(trimmed.dropFirst(2))
-                let beforeHeading = lines[..<i]
-                    .joined(separator: "\n")
-                    .trimmingCharacters(in: .whitespacesAndNewlines)
-                let afterHeading = lines[(i + 1)...]
-                    .joined(separator: "\n")
-                    .trimmingCharacters(in: .whitespacesAndNewlines)
-                let notes = [beforeHeading, afterHeading]
-                    .filter { !$0.isEmpty }
-                    .joined(separator: "\n\n")
-                return SidecarData(caption: caption, notes: notes)
-            }
+        guard lines.count > 1 else {
+            return SidecarData(caption: caption.isEmpty ? nil : caption)
         }
 
-        // No heading found: everything is notes
-        return SidecarData(notes: content)
+        // Everything after the first line (skip leading blank lines)
+        let notes = lines.dropFirst()
+            .joined(separator: "\n")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        return SidecarData(
+            caption: caption.isEmpty ? nil : caption,
+            notes: notes
+        )
     }
 }

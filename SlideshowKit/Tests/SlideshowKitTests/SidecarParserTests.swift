@@ -24,17 +24,40 @@ struct SidecarParserTests {
         #expect(result.notes.contains("golden hour"))
     }
 
-    @Test("Falls back to heading as caption when no frontmatter")
-    func fallbackToHeading() {
+    @Test("No frontmatter: first line is caption, rest is notes")
+    func plainTextCaptionAndNotes() {
         let content = """
-        # Sunset Caption
+        Sunset at the lake
 
         These are the presenter notes.
+
+        With multiple paragraphs.
         """
         let result = parser.parse(content)
-        #expect(result.caption == "Sunset Caption")
+        #expect(result.caption == "Sunset at the lake")
         #expect(result.notes.contains("presenter notes"))
-        #expect(!result.notes.contains("# Sunset Caption"))
+        #expect(result.notes.contains("multiple paragraphs"))
+    }
+
+    @Test("No frontmatter: single line becomes caption only")
+    func singleLineCaption() {
+        let content = "Just a caption"
+        let result = parser.parse(content)
+        #expect(result.caption == "Just a caption")
+        #expect(result.notes.isEmpty)
+    }
+
+    @Test("No frontmatter: caption with immediate notes (no blank line)")
+    func captionWithImmediateNotes() {
+        let content = """
+        My Caption
+        Some notes right after.
+        More notes.
+        """
+        let result = parser.parse(content)
+        #expect(result.caption == "My Caption")
+        #expect(result.notes.contains("Some notes right after."))
+        #expect(result.notes.contains("More notes."))
     }
 
     @Test("Treats malformed frontmatter as plain text")
@@ -48,7 +71,7 @@ struct SidecarParserTests {
         Some notes here.
         """
         let result = parser.parse(content)
-        // Malformed YAML: entire file treated as plain text
+        // Malformed YAML: entire file treated as plain text notes
         #expect(result.caption == nil)
         #expect(result.notes.contains("---"))
     }
@@ -58,14 +81,6 @@ struct SidecarParserTests {
         let result = parser.parse("")
         #expect(result.caption == nil)
         #expect(result.notes.isEmpty)
-    }
-
-    @Test("Plain text without heading or frontmatter")
-    func plainTextOnly() {
-        let content = "Just some plain text notes."
-        let result = parser.parse(content)
-        #expect(result.caption == nil)
-        #expect(result.notes == "Just some plain text notes.")
     }
 
     @Test("Preserves unknown frontmatter fields")
@@ -88,24 +103,14 @@ struct SidecarParserTests {
         let content = """
         Some text before.
         ---
-        caption: Should not parse
+        caption: Should not parse as frontmatter
         ---
         """
         let result = parser.parse(content)
-        #expect(result.caption == nil)
-    }
-
-    @Test("Preserves text before heading in notes")
-    func textBeforeHeading() {
-        let content = """
-        Some intro text.
-        # Caption Here
-        Notes after heading.
-        """
-        let result = parser.parse(content)
-        #expect(result.caption == "Caption Here")
-        #expect(result.notes.contains("Some intro text."))
-        #expect(result.notes.contains("Notes after heading."))
+        // First line becomes caption via plain text fallback
+        #expect(result.caption == "Some text before.")
+        // The --- lines end up in notes
+        #expect(result.notes.contains("---"))
     }
 
     @Test("Normalizes CRLF line endings")
@@ -114,5 +119,13 @@ struct SidecarParserTests {
         let result = parser.parse(content)
         #expect(result.caption == "Test")
         #expect(result.notes == "Notes here.")
+    }
+
+    @Test("CRLF normalization in plain text mode")
+    func normalizeCRLFPlainText() {
+        let content = "My Caption\r\n\r\nSome notes."
+        let result = parser.parse(content)
+        #expect(result.caption == "My Caption")
+        #expect(result.notes == "Some notes.")
     }
 }

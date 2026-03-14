@@ -68,7 +68,7 @@ Presenter notes in markdown here.
 
 Parsing rules:
 - Frontmatter recognized only when `---` appears on line 1, ends at next `---` on its own line
-- No frontmatter fallback: first `# heading` = caption, rest = notes
+- No frontmatter fallback: first line = caption, blank line, then presenter notes
 - Unknown frontmatter fields are preserved on write, ignored on read
 - Malformed YAML → entire file treated as plain text notes
 - Images without sidecar are valid slides; `.md` files without matching image are ignored
