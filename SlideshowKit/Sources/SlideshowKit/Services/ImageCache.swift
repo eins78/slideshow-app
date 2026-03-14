@@ -6,6 +6,10 @@ import AppKit
 /// Thread-safe image cache with thumbnail and full-resolution tiers.
 /// Shared across views via SwiftUI environment to prevent duplicate loads.
 /// See: https://developer.apple.com/documentation/swift/actor
+///
+/// Known limitation: I/O is synchronous inside the actor, which serializes loads.
+/// Acceptable for MVP (~200 slides, <10ms per embedded thumb). For large libraries,
+/// move I/O to Task.detached and use actor only for cache storage.
 public actor ImageCache {
     private let thumbnailCache = NSCache<NSURL, CGImage>()
     private let fullImageCache = NSCache<NSURL, CGImage>()

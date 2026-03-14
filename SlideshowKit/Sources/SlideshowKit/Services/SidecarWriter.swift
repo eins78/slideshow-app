@@ -18,7 +18,10 @@ public struct SidecarWriter: Sendable {
             if let source = data.source { frontmatter["source"] = source }
 
             let yaml = try Yams.dump(object: frontmatter, allowUnicode: true, sortKeys: true)
-            output += "---\n\(yaml)---\n\n"
+            output += "---\n\(yaml)---"
+            if !data.notes.isEmpty {
+                output += "\n\n"
+            }
         }
 
         // Append notes
