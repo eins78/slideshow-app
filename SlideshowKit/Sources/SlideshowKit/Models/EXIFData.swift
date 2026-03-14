@@ -31,7 +31,10 @@ public struct EXIFData: Equatable, Sendable {
     public var settingsString: String? {
         var parts: [String] = []
         if let fl = focalLength { parts.append("\(Int(fl.rounded()))mm") }
-        if let ap = aperture { parts.append("f/\(ap)") }
+        if let ap = aperture {
+            // f/8 not f/8.0 — photographers expect clean whole numbers
+            parts.append(ap == ap.rounded() ? "f/\(Int(ap))" : "f/\(ap)")
+        }
         if let ss = shutterSpeedString { parts.append(ss) }
         if let iso { parts.append("ISO \(iso)") }
         return parts.isEmpty ? nil : parts.joined(separator: " · ")

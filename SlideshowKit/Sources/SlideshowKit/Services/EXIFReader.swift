@@ -37,8 +37,11 @@ public struct EXIFReader: Sendable {
             data.cameraModel = tiff[kCGImagePropertyTIFFModel] as? String
         }
 
-        // Lens info from EXIF Aux
-        if let aux = properties[kCGImagePropertyExifAuxDictionary] as? [CFString: Any] {
+        // Lens info — EXIF 2.3+ stores in main EXIF dict, older in Aux dict
+        if let exif = properties[kCGImagePropertyExifDictionary] as? [CFString: Any],
+           let lens = exif[kCGImagePropertyExifLensModel] as? String {
+            data.lensModel = lens
+        } else if let aux = properties[kCGImagePropertyExifAuxDictionary] as? [CFString: Any] {
             data.lensModel = aux[kCGImagePropertyExifAuxLensModel] as? String
         }
 
@@ -61,11 +64,15 @@ public struct EXIFReader: Sendable {
         return data
     }
 
-    // Per-call DateFormatter — DateFormatter is not thread-safe, and EXIFReader
-    // is called from Task.detached (concurrent). Static instance would race.
+    // Date.VerbatimFormatStyle.ParseStrategy is Sendable and more efficient
+    // than DateFormatter (which is not thread-safe).
+    private static let exifDateStrategy = Date.VerbatimFormatStyle(
+        format: "\(year: .padded(4)):\(month: .twoDigits):\(day: .twoDigits) \(hour: .twoDigits(clock: .twentyFourHour, hourCycle: .zeroBased)):\(minute: .twoDigits):\(second: .twoDigits)",
+        timeZone: .current,
+        calendar: .current
+    ).parseStrategy
+
     private func parseEXIFDate(_ string: String) -> Date? {
-        let f = DateFormatter()
-        f.dateFormat = "yyyy:MM:dd HH:mm:ss"
-        return f.date(from: string)
+        try? Date(string, strategy: Self.exifDateStrategy)
     }
 }
