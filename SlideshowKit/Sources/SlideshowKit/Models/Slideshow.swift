@@ -95,8 +95,11 @@ public final class Slideshow {
         var existingNames = Set(slides.map { $0.fileURL.lastPathComponent })
 
         for url in urls {
-            guard url.startAccessingSecurityScopedResource() else { continue }
-            defer { url.stopAccessingSecurityScopedResource() }
+            // startAccessingSecurityScopedResource returns false for non-scoped URLs
+            // (e.g., some file-importer URLs). The URL may still be accessible via
+            // sandbox entitlements — only call stop if start succeeded.
+            let didStartAccessing = url.startAccessingSecurityScopedResource()
+            defer { if didStartAccessing { url.stopAccessingSecurityScopedResource() } }
 
             let name = reorderer.deconflictedName(url.lastPathComponent, existing: existingNames)
             let dest = folderURL.appending(path: name)

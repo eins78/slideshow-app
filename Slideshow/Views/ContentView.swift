@@ -32,6 +32,7 @@ struct ContentView: View {
                     Button("Present", systemImage: "play.fill") {
                         showPresenter = true
                     }
+                    .accessibilityIdentifier("presentButton")
                     .keyboardShortcut("p", modifiers: [.command, .shift])
                     .disabled(slideshow.slides.isEmpty)
                 }
@@ -40,6 +41,7 @@ struct ContentView: View {
                     Button("Add Images", systemImage: "plus") {
                         showImageImporter = true
                     }
+                    .accessibilityIdentifier("addImagesButton")
                     .keyboardShortcut("i", modifiers: [.command, .shift])
                 }
 

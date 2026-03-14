@@ -11,8 +11,10 @@ struct WelcomeView: View {
             Text("Present image slideshows with captions and presenter notes.")
         } actions: {
             Button("Open Slideshow...") { onOpen() }
+                .accessibilityIdentifier("openSlideshowButton")
                 .buttonStyle(.borderedProminent)
             Button("Create New...") { onNew() }
+                .accessibilityIdentifier("createNewButton")
         }
     }
 }

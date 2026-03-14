@@ -91,6 +91,11 @@ struct SlideshowDocumentView: View {
         .focusedSceneValue(\.openSlideshowURL) { [self] url in
             Task { await openSlideshow(at: url) }
         }
+        .task {
+            if CommandLine.arguments.contains("--ui-test-fixtures") {
+                await loadUITestFixtures()
+            }
+        }
         .fileImporter(
             isPresented: $showFileImporter,
             allowedContentTypes: [.folder, UTType("is.kte.slideshow") ?? .folder],
@@ -159,6 +164,36 @@ struct SlideshowDocumentView: View {
         presenterWindow = window
     }
 
+    /// Load test fixtures for UI testing — copies an example slideshow to a temp dir.
+    /// Activated by launch argument `--ui-test-fixtures`.
+    private func loadUITestFixtures() async {
+        let fm = FileManager.default
+        let tmpDir = fm.temporaryDirectory
+            .appending(path: "slideshow-ui-test-\(ProcessInfo.processInfo.processIdentifier)")
+        try? fm.removeItem(at: tmpDir)
+
+        // Use Examples from the source tree (resolved via #filePath)
+        let sourceExample = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .appending(path: "Examples/Paintings That Tell Secrets.slideshow")
+
+        if fm.fileExists(atPath: sourceExample.path(percentEncoded: false)) {
+            try? fm.copyItem(at: sourceExample, to: tmpDir)
+        } else {
+            // Fallback: minimal fixtures when Examples dir not present
+            try? fm.createDirectory(at: tmpDir, withIntermediateDirectories: true)
+            let jpeg = Data([0xFF, 0xD8, 0xFF, 0xD9])
+            for name in ["001--photo.jpg", "002--photo.jpg", "003--photo.jpg"] {
+                try? jpeg.write(to: tmpDir.appending(path: name))
+            }
+            try? "---\ncaption: Test slide\n---\nNotes"
+                .write(to: tmpDir.appending(path: "002--photo.jpg.md"),
+                       atomically: true, encoding: .utf8)
+        }
+
+        await openSlideshow(at: tmpDir)
+    }
+
     private func openSlideshow(at url: URL) async {
         // Stop accessing the previous slideshow's security-scoped resource
         // before starting the new one. Must balance start/stop calls.
@@ -167,7 +202,11 @@ struct SlideshowDocumentView: View {
             oldURL.stopAccessingSecurityScopedResource()
         }
 
-        guard url.startAccessingSecurityScopedResource() else { return }
+        // startAccessingSecurityScopedResource returns false for non-scoped URLs
+        // (e.g., temp dirs, some file-importer URLs). The URL may still be accessible
+        // via sandbox entitlements — only call stop if start succeeded.
+        // See: https://developer.apple.com/documentation/foundation/url/1779698-startaccessingsecurityscopedreso
+        let didStartAccessing = url.startAccessingSecurityScopedResource()
 
         bookmarkManager.saveBookmark(for: url)
         NSDocumentController.shared.noteNewRecentDocumentURL(url)
@@ -181,7 +220,7 @@ struct SlideshowDocumentView: View {
                 slideshow.selectedSlideID = first.id
             }
         } catch {
-            url.stopAccessingSecurityScopedResource()
+            if didStartAccessing { url.stopAccessingSecurityScopedResource() }
             print("Failed to scan folder: \(error)")
         }
     }
