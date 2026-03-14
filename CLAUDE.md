@@ -46,6 +46,10 @@ xcodegen generate
 xcodebuild -scheme Slideshow -destination 'platform=macOS' build
 ```
 
+### Xcode MCP Bridge
+
+When Xcode is open with the project, the Xcode MCP bridge (`.mcp.json`) provides tools for building, running tests, rendering SwiftUI previews, executing code snippets, and inspecting issues — all without GUI interaction. Requires Xcode > Settings > Intelligence > MCP > Xcode Tools: ON. See `.claude/skills/macos-development.md` for full tool reference.
+
 ## Xcode Project
 
 The `.xcodeproj` is generated from `project.yml` via [xcodegen](https://github.com/yonaskolb/XcodeGen) and is gitignored. Run `xcodegen generate` after adding new source files or changing project settings. To open in Xcode: `open Slideshow.xcodeproj`.
@@ -140,12 +144,10 @@ Domain-specific rules in `.claude/rules/`:
 - `accessibility.md` — VoiceOver, keyboard nav, Dynamic Type, click targets
 - `performance.md` — main thread, image optimization, caching, SwiftUI rendering
 
-Review agents in `.claude/agents/` (from [swift-agents](https://github.com/Techopolis/swift-agents), dispatch during review):
-- `mobile-a11y-specialist` — accessibility audit (VoiceOver, Dynamic Type, focus, keyboard)
-- `performance-specialist` — performance audit (main thread, image loading, caching, rendering)
-- `concurrency-specialist` — Swift 6 concurrency review (actors, Sendable, data races)
-- `swiftui-specialist` — SwiftUI patterns review (@Observable, state, navigation)
-- Full roster of 16 agents available — per-prompt hook disabled, invoke on demand
+Review agents in `.claude/agents/` (from [swift-agents](https://github.com/Techopolis/swift-agents)):
+- 16 specialist agents auto-routed via `swift-lead` on every prompt (`UserPromptSubmit` hook)
+- Key specialists: `mobile-a11y-specialist`, `performance-specialist`, `concurrency-specialist`, `swiftui-specialist`, `testing-specialist`
+- Also invocable manually: `/mobile-a11y-specialist review the slide list views`
 
 ### Skills
 
