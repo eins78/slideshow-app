@@ -86,17 +86,42 @@ Filesystem order (alphabetical). App renames files with `\d{3}--` prefix on drag
 ### Sandbox & Bookmarks
 Security-scoped bookmarks via `BookmarkManager` (`@Observable` class) for reopening slideshows after relaunch. Must balance `start/stopAccessingSecurityScopedResource` calls. Requires `com.apple.security.files.bookmarks.app-scope` entitlement.
 
-## Code Conventions
+## Development Rules
 
-- `Yams.dump` uses `sortedKeys: true` for deterministic output
+### Definition of Done
+
+A task is NOT done until ALL of these are satisfied:
+
+1. `cd SlideshowKit && swift test` — zero failures
+2. `xcodebuild -scheme Slideshow -destination 'platform=macOS' build` — zero warnings
+3. No `!` force unwraps — use `guard let`, `if let`, or `??`
+4. No `as!` force casts — use `as?` with handling
+5. No `@unchecked Sendable`, no `nonisolated(unsafe)`
+6. No `import Combine`
+7. Sidecar round-trip: unknown frontmatter keys must survive parse → write unchanged
+8. Tests written before or alongside implementation, never after
+9. One logical change per commit; imperative mood, lowercase, no trailing period
+10. **Gemini review loop:** after committing, run `/ai-review` for Gemini review. If issues are found: fix them, commit the fixes, and run `/ai-review` again. Repeat until the review comes back clean (max 10 iterations — if still failing after 10, stop and ask the human for help). NEVER skip reviews. Work in PR-sized batches — commit when a task is logically complete, then enter the review loop
+
+### Code Conventions
+
+- `Yams.dump` with `sortedKeys: true` for deterministic output
 - `DateFormatter` instances are `static` (avoid repeated allocation)
-- `isImageFile()` uses fast-path extension set check
-- `FileReorderer` skips no-op renames
+- `isImageFile()` uses fast-path `Set<String>` of extensions, not runtime UTType resolution
+- `FileReorderer` skips no-op renames (source == destination)
 - EXIF reading wrapped in `Task.detached` to avoid main actor
 - EditorPanel disk writes debounced (500ms) — critical for iCloud Drive
 - File operations (createSidecar, removeSlide, moveSlide, addImages) live on the `Slideshow` model, not in views
 - `addImages()` is incremental (no full re-scan)
 - Bundle identifier: `is.kte.slideshow`
+
+### Detailed Rules
+
+Domain-specific rules in `.claude/rules/`:
+- `swift-concurrency.md` — Swift 6 strict concurrency patterns
+- `swiftui-patterns.md` — SwiftUI state management and view rules
+- `testing.md` — Swift Testing framework conventions
+- `git-and-workflow.md` — git conventions, review workflow, plot readiness
 
 ## Specs & Plans
 
