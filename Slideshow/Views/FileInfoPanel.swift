@@ -11,6 +11,7 @@ struct FileInfoPanel: View {
                 Text("File Info")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .accessibilityAddTraits(.isHeader)
 
                 Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 3) {
                     infoRow("File", slide.fileURL.lastPathComponent)

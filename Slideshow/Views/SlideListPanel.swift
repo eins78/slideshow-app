@@ -65,6 +65,7 @@ struct SlideListPanel: View {
                 .frame(width: 100, height: 80)
                 .background(Color(nsColor: .controlBackgroundColor))
                 .clipShape(RoundedRectangle(cornerRadius: 6))
+                .accessibilityHidden(true)
 
             Text(slide.strippedFilename)
                 .font(.caption)

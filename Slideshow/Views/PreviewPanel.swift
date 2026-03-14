@@ -40,7 +40,7 @@ struct PreviewPanel: View {
                     // Load completed but returned nil — show placeholder
                     Image(systemName: "photo")
                         .font(.system(size: 48))
-                        .foregroundStyle(.gray)
+                        .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     ProgressView()

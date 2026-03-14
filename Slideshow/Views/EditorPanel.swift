@@ -15,6 +15,7 @@ struct EditorPanel: View {
                     Text("Caption")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        .accessibilityAddTraits(.isHeader)
                     TextField("Slide caption", text: $slide.captionText)
                         .textFieldStyle(.roundedBorder)
                 }
@@ -23,6 +24,7 @@ struct EditorPanel: View {
                     Text("Source")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        .accessibilityAddTraits(.isHeader)
                     TextField("Copyright / provenance", text: $slide.sourceText, axis: .vertical)
                         .textFieldStyle(.roundedBorder)
                         .lineLimit(3...6)
@@ -34,6 +36,7 @@ struct EditorPanel: View {
                     Text("Presenter Notes")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                        .accessibilityAddTraits(.isHeader)
                     TextEditor(text: $slide.notesText)
                         .font(.system(.body, design: .monospaced))
                         .frame(minHeight: 150)

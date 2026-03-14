@@ -49,6 +49,7 @@ struct ContentView: View {
                     Button("Inspector", systemImage: "sidebar.trailing") {
                         showInspector.toggle()
                     }
+                    .accessibilityLabel("Toggle Inspector")
                     .keyboardShortcut("i", modifiers: [.command, .option])
                 }
             }
