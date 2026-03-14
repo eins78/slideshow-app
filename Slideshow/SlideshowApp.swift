@@ -1,4 +1,5 @@
 import SwiftUI
+import UniformTypeIdentifiers
 import SlideshowKit
 
 private struct ImageCacheKey: EnvironmentKey {
@@ -16,6 +17,7 @@ extension EnvironmentValues {
 struct SlideshowApp: App {
     @State private var slideshow = Slideshow()
     @State private var showFileImporter = false
+    @State private var bookmarkManager = BookmarkManager()
     private let imageCache = ImageCache()
 
     var body: some Scene {
@@ -26,11 +28,12 @@ struct SlideshowApp: App {
                 } else {
                     WelcomeView(
                         onOpen: { showFileImporter = true },
-                        onNew: { /* TODO: Task 14 */ }
+                        onNew: { createNewSlideshow() }
                     )
                 }
             }
             .environment(\.imageCache, imageCache)
+            .environment(bookmarkManager)
             .fileImporter(
                 isPresented: $showFileImporter,
                 allowedContentTypes: [.folder],
@@ -46,21 +49,41 @@ struct SlideshowApp: App {
         .windowToolbarStyle(.unified)
         .commands {
             CommandGroup(replacing: .newItem) {
+                Button("New Slideshow...") { createNewSlideshow() }
+                    .keyboardShortcut("n")
                 Button("Open Slideshow...") { showFileImporter = true }
                     .keyboardShortcut("o")
             }
         }
 
+        Window("Presenter", id: "presenter") {
+            PresenterView(slideshow: slideshow)
+                .environment(\.imageCache, imageCache)
+        }
+        .windowStyle(.hiddenTitleBar)
+
         Settings {
-            Text("Settings placeholder")
-                .frame(width: 400, height: 300)
+            SettingsView()
+        }
+    }
+
+    private func createNewSlideshow() {
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [UTType("is.kte.slideshow") ?? .folder]
+        panel.nameFieldStringValue = "Untitled.slideshow"
+        panel.begin { response in
+            guard response == .OK, let url = panel.url else { return }
+            try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+            Task { await openSlideshow(at: url) }
         }
     }
 
     private func openSlideshow(at url: URL) async {
         // Security-scoped access required for sandboxed app
         guard url.startAccessingSecurityScopedResource() else { return }
-        defer { url.stopAccessingSecurityScopedResource() }
+
+        bookmarkManager.saveBookmark(for: url)
+        NSDocumentController.shared.noteNewRecentDocumentURL(url)
 
         let scanner = FolderScanner()
         do {
@@ -71,6 +94,7 @@ struct SlideshowApp: App {
                 slideshow.selectedSlideID = first.id
             }
         } catch {
+            url.stopAccessingSecurityScopedResource()
             print("Failed to scan folder: \(error)")
         }
     }
