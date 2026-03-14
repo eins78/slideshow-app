@@ -3,6 +3,7 @@ import SlideshowKit
 
 struct ContentView: View {
     @Bindable var slideshow: Slideshow
+    @Environment(\.openWindow) private var openWindow
     @State private var showInspector = true
     @State private var viewMode: ViewMode = .list
     @State private var searchText = ""
@@ -56,6 +57,14 @@ struct ContentView: View {
                 }
                 .pickerStyle(.segmented)
                 .frame(width: 80)
+            }
+
+            ToolbarItem(placement: .automatic) {
+                Button("Present", systemImage: "play.fill") {
+                    openWindow(id: "presenter")
+                }
+                .keyboardShortcut("p", modifiers: [.command, .shift])
+                .disabled(slideshow.slides.isEmpty)
             }
 
             ToolbarItem(placement: .automatic) {
