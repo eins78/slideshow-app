@@ -95,3 +95,24 @@ struct ContentView: View {
         }
     }
 }
+
+#Preview("Content — Empty") {
+    ContentView(slideshow: Slideshow(), showPresenter: .constant(false))
+        .frame(width: 900, height: 600)
+}
+
+#Preview("Content — With Slides") {
+    let slideshow = Slideshow(folderURL: URL(fileURLWithPath: "/tmp/demo.slideshow"))
+    let slides = [
+        Slide(fileURL: URL(fileURLWithPath: "/tmp/demo.slideshow/001--intro.jpg"),
+              sidecar: SidecarData(caption: "Welcome slide", notes: "Opening remarks")),
+        Slide(fileURL: URL(fileURLWithPath: "/tmp/demo.slideshow/002--sunset.jpg"),
+              sidecar: SidecarData(caption: "Golden hour", source: "© Photographer")),
+        Slide(fileURL: URL(fileURLWithPath: "/tmp/demo.slideshow/003--portrait.jpg")),
+    ]
+    for slide in slides { slide.fileSize = 2_500_000 }
+    slideshow.slides = slides
+    slideshow.selectedSlideID = slides[1].id
+    return ContentView(slideshow: slideshow, showPresenter: .constant(false))
+        .frame(width: 900, height: 600)
+}

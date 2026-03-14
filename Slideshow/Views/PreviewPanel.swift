@@ -92,3 +92,19 @@ struct PreviewPanel: View {
         .background(Color(nsColor: .controlBackgroundColor))
     }
 }
+
+#Preview("Preview Panel") {
+    let slideshow = Slideshow(folderURL: URL(fileURLWithPath: "/tmp/demo.slideshow"))
+    let slide = Slide(
+        fileURL: URL(fileURLWithPath: "/tmp/demo.slideshow/sunset.jpg"),
+        sidecar: SidecarData(
+            caption: "Golden hour",
+            source: "© Photographer 2024\nLightroom CC",
+            notes: "Beautiful sunset over the lake.\n\n**Discuss:** composition and light"
+        )
+    )
+    slideshow.slides = [slide]
+    slideshow.selectedSlideID = slide.id
+    return PreviewPanel(slideshow: slideshow)
+        .frame(width: 240, height: 600)
+}

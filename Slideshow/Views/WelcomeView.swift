@@ -16,3 +16,8 @@ struct WelcomeView: View {
         }
     }
 }
+
+#Preview("Welcome") {
+    WelcomeView(onOpen: {}, onNew: {})
+        .frame(width: 600, height: 400)
+}

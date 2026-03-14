@@ -57,3 +57,17 @@ struct EditorPanel: View {
         }
     }
 }
+
+#Preview("Editor Panel") {
+    let slideshow = Slideshow()
+    let slide = Slide(
+        fileURL: URL(fileURLWithPath: "/tmp/sunset.jpg"),
+        sidecar: SidecarData(
+            caption: "Golden hour",
+            source: "© Photographer 2024",
+            notes: "Beautiful sunset over the lake.\n\n**Key points:**\n- Warm tones\n- Reflection"
+        )
+    )
+    return EditorPanel(slideshow: slideshow, slide: slide)
+        .frame(width: 280, height: 500)
+}
