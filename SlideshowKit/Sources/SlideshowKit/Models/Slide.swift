@@ -35,7 +35,7 @@ public final class Slide: Identifiable {
         fileURL.appendingPathExtension("md")
     }
 
-    /// Whether a sidecar file exists on disk.
+    /// Whether sidecar data is currently loaded for this slide.
     public var hasSidecar: Bool {
         sidecar != nil
     }

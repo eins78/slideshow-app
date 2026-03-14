@@ -50,10 +50,22 @@ public final class Slideshow {
 
     /// Remove a slide from the slideshow and delete its files from disk.
     public func removeSlide(_ slide: Slide) {
+        let wasSelected = slide.id == selectedSlideID
+        let removedIndex = slides.firstIndex { $0.id == slide.id }
+
         slides.removeAll { $0.id == slide.id }
         try? FileManager.default.removeItem(at: slide.fileURL)
         if FileManager.default.fileExists(atPath: slide.sidecarURL.path(percentEncoded: false)) {
             try? FileManager.default.removeItem(at: slide.sidecarURL)
+        }
+
+        if wasSelected {
+            if let idx = removedIndex {
+                let newIdx = min(idx, slides.count - 1)
+                selectedSlideID = newIdx >= 0 ? slides[newIdx].id : nil
+            } else {
+                selectedSlideID = nil
+            }
         }
     }
 
