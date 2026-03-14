@@ -2,6 +2,9 @@ import Foundation
 import Observation
 
 /// The top-level document model: a folder of slides.
+/// @MainActor: created and mutated by views, owns file I/O operations.
+/// See: https://developer.apple.com/documentation/swiftui/model-data
+@MainActor
 @Observable
 public final class Slideshow {
     /// The folder URL of the .slideshow bundle.
