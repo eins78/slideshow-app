@@ -50,8 +50,9 @@ public final class Slideshow {
     }
 
     // MARK: - Slide operations
-    // Design: file I/O lives on the model, not in views. Synchronous by design —
-    // views call model methods, model owns I/O.
+    // Design: file I/O lives on the model, not in views. Synchronous on @MainActor
+    // by design — operations are fast (rename/copy single files, not batch processing).
+    // Async would add complexity without measurable benefit for typical slideshow sizes.
     // See: https://developer.apple.com/documentation/swiftui/model-data
 
     /// Create an empty sidecar file for a slide.
