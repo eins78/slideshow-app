@@ -95,6 +95,19 @@ struct SidecarParserTests {
         #expect(result.caption == nil)
     }
 
+    @Test("Preserves text before heading in notes")
+    func textBeforeHeading() {
+        let content = """
+        Some intro text.
+        # Caption Here
+        Notes after heading.
+        """
+        let result = parser.parse(content)
+        #expect(result.caption == "Caption Here")
+        #expect(result.notes.contains("Some intro text."))
+        #expect(result.notes.contains("Notes after heading."))
+    }
+
     @Test("Normalizes CRLF line endings")
     func normalizeCRLF() {
         let content = "---\r\ncaption: Test\r\n---\r\n\r\nNotes here."

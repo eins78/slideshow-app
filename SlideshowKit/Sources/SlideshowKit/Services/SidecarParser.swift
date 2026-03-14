@@ -89,6 +89,7 @@ public struct SidecarParser: Sendable {
     }
 
     /// Fallback: first # heading = caption, rest = notes.
+    /// Text before the heading is preserved in notes.
     private func parseHeadingFallback(_ content: String) -> SidecarData {
         let lines = content.components(separatedBy: "\n")
 
@@ -96,8 +97,15 @@ public struct SidecarParser: Sendable {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
             if trimmed.hasPrefix("# ") {
                 let caption = String(trimmed.dropFirst(2))
-                let remainingLines = lines[(i + 1)...]
-                let notes = remainingLines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+                let beforeHeading = lines[..<i]
+                    .joined(separator: "\n")
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                let afterHeading = lines[(i + 1)...]
+                    .joined(separator: "\n")
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                let notes = [beforeHeading, afterHeading]
+                    .filter { !$0.isEmpty }
+                    .joined(separator: "\n\n")
                 return SidecarData(caption: caption, notes: notes)
             }
         }
