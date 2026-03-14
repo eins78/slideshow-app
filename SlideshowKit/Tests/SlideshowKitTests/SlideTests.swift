@@ -81,6 +81,36 @@ struct SlideTests {
         #expect(slide.sidecar?.caption == nil)
     }
 
+    @Test("sourceText clears to nil on empty string")
+    func sourceClearsToNil() {
+        let slide = Slide(
+            fileURL: URL(fileURLWithPath: "/tmp/a.jpg"),
+            sidecar: SidecarData(source: "© Author")
+        )
+        slide.sourceText = ""
+        #expect(slide.sidecar?.source == nil)
+    }
+
+    @Test("notesText preserves empty string (does not clear to nil)")
+    func notesPreservesEmpty() {
+        let slide = Slide(
+            fileURL: URL(fileURLWithPath: "/tmp/a.jpg"),
+            sidecar: SidecarData(notes: "Some notes")
+        )
+        slide.notesText = ""
+        #expect(slide.sidecar?.notes == "")
+    }
+
+    @Test("displayName returns empty string when caption is empty (not nil)")
+    func displayNameEmptyCaption() {
+        let slide = Slide(
+            fileURL: URL(fileURLWithPath: "/tmp/003--sunset.jpg"),
+            sidecar: SidecarData(caption: "")
+        )
+        // Empty-string caption does not trigger ?? fallback — returns ""
+        #expect(slide.displayName == "")
+    }
+
     @Test("sourceText and notesText bind correctly")
     func sourceAndNotesBindings() {
         let slide = Slide(fileURL: URL(fileURLWithPath: "/tmp/a.jpg"))
