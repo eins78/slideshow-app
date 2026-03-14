@@ -29,6 +29,6 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: is.kte.slideshow
         INFOPLIST_FILE: Slideshow/Info.plist
         CODE_SIGN_ENTITLEMENTS: Slideshow/Slideshow.entitlements
-        GENERATE_INFOPLIST_FILE: false
+        GENERATE_INFOPLIST_FILE: true
     dependencies:
       - package: SlideshowKit
