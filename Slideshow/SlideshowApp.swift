@@ -2,6 +2,17 @@ import SwiftUI
 import UniformTypeIdentifiers
 import SlideshowKit
 
+private struct ImageCacheKey: EnvironmentKey {
+    static let defaultValue = ImageCache()
+}
+
+extension EnvironmentValues {
+    var imageCache: ImageCache {
+        get { self[ImageCacheKey.self] }
+        set { self[ImageCacheKey.self] = newValue }
+    }
+}
+
 /// FocusedValue for triggering "New Slideshow" from the App menu.
 /// The App sets this to true; the focused DocumentView observes and acts.
 /// See: https://developer.apple.com/documentation/swiftui/focusedvaluekey

@@ -1,24 +1,10 @@
 import Foundation
-import SwiftUI
 #if canImport(AppKit)
 import AppKit
 #endif
 #if canImport(UIKit)
 import UIKit
 #endif
-
-// MARK: - SwiftUI Environment
-
-private struct ImageCacheKey: EnvironmentKey {
-    static let defaultValue = ImageCache()
-}
-
-extension EnvironmentValues {
-    public var imageCache: ImageCache {
-        get { self[ImageCacheKey.self] }
-        set { self[ImageCacheKey.self] = newValue }
-    }
-}
 
 /// Thread-safe image cache with thumbnail and full-resolution tiers.
 /// Shared across views via SwiftUI environment to prevent duplicate loads.

@@ -2,6 +2,17 @@ import SwiftUI
 import UniformTypeIdentifiers
 import SlideshowKit
 
+private struct ImageCacheKey: EnvironmentKey {
+    static let defaultValue = ImageCache()
+}
+
+extension EnvironmentValues {
+    var imageCache: ImageCache {
+        get { self[ImageCacheKey.self] }
+        set { self[ImageCacheKey.self] = newValue }
+    }
+}
+
 @main
 struct SlideshowMobileApp: App {
     @State private var slideshow = Slideshow()
@@ -15,12 +26,13 @@ struct SlideshowMobileApp: App {
                 if slideshow.folderURL != nil {
                     MobileContentView(slideshow: slideshow)
                 } else {
-                    ContentUnavailableView(
-                        "Open a Slideshow",
-                        systemImage: "photo.on.rectangle.angled",
-                        description: Text("Open a .slideshow folder from Files to get started.")
-                    )
-                    .onTapGesture { showFileImporter = true }
+                    ContentUnavailableView {
+                        Label("Open a Slideshow", systemImage: "photo.on.rectangle.angled")
+                    } description: {
+                        Text("Open a .slideshow folder from Files to get started.")
+                    } actions: {
+                        Button("Open Slideshow") { showFileImporter = true }
+                    }
                 }
             }
             .environment(\.imageCache, imageCache)
