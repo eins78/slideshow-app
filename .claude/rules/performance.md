@@ -43,4 +43,4 @@ Based on [swift-agents/performance-specialist](https://github.com/Techopolis/swi
 
 ## Review agent
 
-For active performance auditing during review, dispatch the `performance-reviewer` agent.
+For active performance auditing during review, dispatch the `performance-specialist` agent (from swift-agents upstream).

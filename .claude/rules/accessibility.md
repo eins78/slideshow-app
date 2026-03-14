@@ -38,4 +38,4 @@ Based on [swift-agents/mobile-a11y-specialist](https://github.com/Techopolis/swi
 
 ## Review agent
 
-For active accessibility auditing during review, dispatch the `a11y-reviewer` agent.
+For active accessibility auditing during review, dispatch the `mobile-a11y-specialist` agent (from swift-agents upstream).

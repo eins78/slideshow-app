@@ -140,9 +140,12 @@ Domain-specific rules in `.claude/rules/`:
 - `accessibility.md` — VoiceOver, keyboard nav, Dynamic Type, click targets
 - `performance.md` — main thread, image optimization, caching, SwiftUI rendering
 
-Review agents in `.claude/agents/` (dispatch during review):
-- `a11y-reviewer` — active accessibility audit of changed view files
-- `performance-reviewer` — active performance audit of changed code
+Review agents in `.claude/agents/` (from [swift-agents](https://github.com/Techopolis/swift-agents), dispatch during review):
+- `mobile-a11y-specialist` — accessibility audit (VoiceOver, Dynamic Type, focus, keyboard)
+- `performance-specialist` — performance audit (main thread, image loading, caching, rendering)
+- `concurrency-specialist` — Swift 6 concurrency review (actors, Sendable, data races)
+- `swiftui-specialist` — SwiftUI patterns review (@Observable, state, navigation)
+- Full roster of 16 agents available — per-prompt hook disabled, invoke on demand
 
 ### Skills
 
