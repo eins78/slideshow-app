@@ -67,6 +67,19 @@ final class SlideshowUITests: XCTestCase {
         }
     }
 
+    // MARK: - Add Images
+
+    func testAddImagesFromExamples() throws {
+        app.launchArguments = ["--ui-test-add-images"]
+        app.launch()
+
+        let presentButton = app.buttons["presentButton"].firstMatch
+        XCTAssertTrue(presentButton.waitForExistence(timeout: 10),
+                       "Present button should appear after adding images")
+        XCTAssertTrue(presentButton.isEnabled,
+                       "Present button should be enabled when slides are loaded")
+    }
+
     // MARK: - Accessibility
 
     func testAccessibilityAudit() throws {
@@ -76,13 +89,7 @@ final class SlideshowUITests: XCTestCase {
         let presentButton = app.buttons["presentButton"].firstMatch
         XCTAssertTrue(presentButton.waitForExistence(timeout: 10))
 
-        // Log all audit issues for diagnosis rather than failing on first
-        try app.performAccessibilityAudit { issue in
-            // Log each issue but don't auto-fail — triage individually
-            print("A11Y AUDIT: [\(issue.auditType)] \(issue.compactDescription)")
-            // Return true to report as failure, false to skip
-            return true
-        }
+        try app.performAccessibilityAudit()
     }
 
     // MARK: - Keyboard Navigation
