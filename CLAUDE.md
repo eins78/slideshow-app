@@ -39,13 +39,16 @@ cd SlideshowKit && swift test
 # Run a single test
 cd SlideshowKit && swift test --filter SlideshowKitTests.SidecarParserTests/testFrontmatterParsing
 
+# Generate Xcode project (must run after changing project.yml or adding files)
+xcodegen generate
+
 # Build the full Xcode project (from project root)
 xcodebuild -scheme Slideshow -destination 'platform=macOS' build
 ```
 
-## Xcode Project Location
+## Xcode Project
 
-The Xcode project lives at: `/Users/mfa/Library/Mobile Documents/com~apple~CloudDocs/_Projects/Slideshow/`
+The `.xcodeproj` is generated from `project.yml` via [xcodegen](https://github.com/yonaskolb/XcodeGen) and is gitignored. Run `xcodegen generate` after adding new source files or changing project settings. To open in Xcode: `open Slideshow.xcodeproj`.
 
 This git repo (`/Users/mfa/CODE/slideshow-app`) is the working directory. The Xcode project references SlideshowKit as a local Swift Package.
 
