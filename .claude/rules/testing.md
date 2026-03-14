@@ -41,3 +41,11 @@ These areas MUST have tests before their implementation is considered complete:
 - **FileReorderer**: no-op skip (source == destination), collision-free rename via temp UUIDs, correct `\d{3}--` prefix numbering
 - **FolderScanner**: image↔sidecar matching, case-insensitive matching, ignoring orphan `.md` files, sorting by filename
 - **EXIFReader**: extraction from JPEG with EXIF data, graceful handling of images without EXIF
+
+## UI testing
+
+- UI tests live in `SlideshowUITests/` (Xcode target, not SPM)
+- Framework: XCTest (NOT Swift Testing) — XCUITest requires XCTestCase
+- See `.claude/rules/ui-testing.md` for detailed conventions
+- See `.claude/skills/testing-playbook.md` for the full testing reference
+- Run: `xcodebuild test -scheme Slideshow -destination 'platform=macOS' -only-testing:SlideshowUITests`
