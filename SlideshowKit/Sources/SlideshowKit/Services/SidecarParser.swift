@@ -74,7 +74,9 @@ public struct SidecarParser: Sendable {
         let caption = dict["caption"] as? String
         let source = dict["source"] as? String
 
-        // Preserve all fields as strings for round-tripping
+        // Preserve all fields as strings for round-tripping.
+        // Lossy for complex YAML types (arrays, nested dicts) — acceptable because
+        // sidecar frontmatter is flat key-value pairs by design.
         var rawFrontmatter: [String: String] = [:]
         for (key, value) in dict {
             rawFrontmatter[key] = "\(value)"

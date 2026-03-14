@@ -24,11 +24,12 @@
 
 1. Complete the task, ensure DoD items 1-9 pass
 2. Commit the work (one logical change per commit)
-3. Run `/ai-review` to get a second-model review from Gemini
-4. If issues found: fix them, commit the fixes, run `/ai-review` again
-5. Repeat until the review comes back clean
-6. Maximum 10 review iterations — if still failing after 10, STOP and ask the human for help
-7. Only then move to the next task
+3. Run `/simplify` to review changed code for reuse, quality, and efficiency — fix any issues found
+4. Run `/ai-review` to get a second-model review from Gemini
+5. If issues found: fix them, commit the fixes, run `/ai-review` again
+6. Repeat until the review comes back clean
+7. Maximum 10 review iterations — if still failing after 10, STOP and ask the human for help
+8. Only then move to the next task
 
 Work in PR-sized batches — each commit should be a self-contained, reviewable unit.
 

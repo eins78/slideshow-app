@@ -2,6 +2,8 @@ import Foundation
 import Observation
 
 /// A single slide in a slideshow — one image with optional sidecar data.
+/// Not @MainActor: created in background by FolderScanner, observed by views.
+/// See: https://developer.apple.com/documentation/observation/observable()#Discussion
 @Observable
 public final class Slide: Identifiable {
     public let id: UUID
@@ -41,6 +43,8 @@ public final class Slide: Identifiable {
     }
 
     // MARK: - Bindable computed properties for EditorPanel
+    // Setters have side effects (ensureSidecar) by design — enables lazy sidecar
+    // creation when user first types in EditorPanel, avoiding empty .md file clutter.
 
     private func ensureSidecar() {
         if sidecar == nil { sidecar = SidecarData() }

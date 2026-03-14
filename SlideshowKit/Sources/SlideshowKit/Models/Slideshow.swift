@@ -47,8 +47,12 @@ public final class Slideshow {
     }
 
     // MARK: - Slide operations
+    // Design: file I/O lives on the model, not in views. Synchronous by design —
+    // views call model methods, model owns I/O.
+    // See: https://developer.apple.com/documentation/swiftui/model-data
 
     /// Remove a slide from the slideshow and delete its files from disk.
+    /// Uses try? intentionally — orphaned files are acceptable vs. blocking the user.
     public func removeSlide(_ slide: Slide) {
         let wasSelected = slide.id == selectedSlideID
         let removedIndex = slides.firstIndex { $0.id == slide.id }

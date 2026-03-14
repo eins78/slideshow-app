@@ -101,7 +101,12 @@ A task is NOT done until ALL of these are satisfied:
 7. Sidecar round-trip: unknown frontmatter keys must survive parse → write unchanged
 8. Tests written before or alongside implementation, never after
 9. One logical change per commit; imperative mood, lowercase, no trailing period
-10. **Gemini review loop:** after committing, run `/ai-review` for Gemini review. If issues are found: fix them, commit the fixes, and run `/ai-review` again. Repeat until the review comes back clean (max 10 iterations — if still failing after 10, stop and ask the human for help). NEVER skip reviews. Work in PR-sized batches — commit when a task is logically complete, then enter the review loop
+10. **Simplify:** after committing, run `/simplify` to review changed code for reuse, quality, and efficiency — fix any issues found before proceeding
+11. **Gemini review loop:** after simplify, run `/ai-review` for Gemini review. If issues are found: fix them, commit the fixes, and run `/ai-review` again. Repeat until the review comes back clean (max 10 iterations — if still failing after 10, stop and ask the human for help). NEVER skip reviews. Work in PR-sized batches — commit when a task is logically complete, then enter the review loop
+
+### Handling Repeated Review Findings
+
+When a review repeatedly flags a deliberate design choice that we won't change, add a brief comment in the code explaining **why** with a **link to the relevant documentation or spec** (Apple docs, Swift Evolution proposal, design spec, etc.). This prevents the same false positive from wasting review cycles. Do not write "this is correct" — cite the source.
 
 ### Code Conventions
 
@@ -122,6 +127,19 @@ Domain-specific rules in `.claude/rules/`:
 - `swiftui-patterns.md` — SwiftUI state management and view rules
 - `testing.md` — Swift Testing framework conventions
 - `git-and-workflow.md` — git conventions, review workflow, plot readiness
+
+## Code Review Context
+
+Context for external reviewers (Gemini, OpenAI) who lack access to the full codebase:
+
+- **Stack:** Swift 6 strict concurrency, SwiftUI, macOS 26+ / iOS 26+ (Xcode 26 beta). `.v26` platform targets are correct and intentional.
+- **`CLLocationCoordinate2D`** is `Sendable` in the macOS 26 SDK — no wrapper needed.
+- **File operations on `Slideshow` model** (removeSlide, moveSlide, createSidecar, addImages) are synchronous by design. This is a deliberate architecture choice — views call model methods, model owns I/O. Do not flag as "should be async" or "should be in a service."
+- **`@Observable` without `@MainActor`** on `Slide`: intentional. Slides are created in background (FolderScanner) and observed by views. `@MainActor` is added at the view-model level (`Slideshow`), not per-entity.
+- **`try?` in file deletion:** acceptable for MVP — orphaned files on disk are a minor issue vs. blocking the user with error dialogs.
+- **`rawFrontmatter` as `[String: String]`:** sidecar YAML is flat key-value pairs. Lossy conversion of complex types is acceptable — we don't support nested YAML.
+- **No `AsyncImage`** — all image loading via `ImageCache` actor + `NSImage`.
+- **Review focus:** Logic errors, concurrency bugs, missing edge cases, API misuse. Not: architecture redesigns, hypothetical performance, or "should use a different pattern."
 
 ## Specs & Plans
 
