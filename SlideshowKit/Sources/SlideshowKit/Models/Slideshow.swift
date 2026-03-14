@@ -51,6 +51,14 @@ public final class Slideshow {
     // views call model methods, model owns I/O.
     // See: https://developer.apple.com/documentation/swiftui/model-data
 
+    /// Create an empty sidecar file for a slide.
+    public func createSidecar(for slide: Slide) throws {
+        let writer = SidecarWriter()
+        let data = SidecarData(notes: "")
+        try writer.write(data, to: slide.sidecarURL)
+        slide.sidecar = data
+    }
+
     /// Remove a slide from the slideshow and delete its files from disk.
     /// Uses try? intentionally — orphaned files are acceptable vs. blocking the user.
     public func removeSlide(_ slide: Slide) {
