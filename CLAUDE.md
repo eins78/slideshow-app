@@ -107,6 +107,13 @@ A task is NOT done until ALL of these are satisfied:
 10. **Simplify:** after committing, run `/simplify` to review changed code for reuse, quality, and efficiency — fix any issues found before proceeding
 11. **Gemini review loop:** after simplify, run `/ai-review` for Gemini review. If issues are found: fix them, commit the fixes, and run `/ai-review` again. Repeat until the review comes back clean (max 10 iterations — if still failing after 10, stop and ask the human for help). NEVER skip reviews. Work in PR-sized batches — commit when a task is logically complete, then enter the review loop
 
+### Git History Rules
+
+- **Always commit before** running `/simplify` or `/ai-review` — the review input must be a committed state
+- **Never amend** review/simplify fix commits into the original — each fix is its own commit with rationale
+- **Preserve full history** — the commit log must tell the story: what was built, what the review found, and why fixes were made
+- Commit messages for fixes should reference what triggered them (e.g., "fix review findings in X" with bullet points explaining each change)
+
 ### Handling Repeated Review Findings
 
 When a review repeatedly flags a deliberate design choice that we won't change, add a brief comment in the code explaining **why** with a **link to the relevant documentation or spec** (Apple docs, Swift Evolution proposal, design spec, etc.). This prevents the same false positive from wasting review cycles. Do not write "this is correct" — cite the source.

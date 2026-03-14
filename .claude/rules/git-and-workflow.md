@@ -23,13 +23,16 @@
 **No task is complete without a clean Gemini review. NEVER skip reviews.**
 
 1. Complete the task, ensure DoD items 1-9 pass
-2. Commit the work (one logical change per commit)
-3. Run `/simplify` to review changed code for reuse, quality, and efficiency — fix any issues found
-4. Run `/ai-review` to get a second-model review from Gemini
-5. If issues found: fix them, commit the fixes, run `/ai-review` again
-6. Repeat until the review comes back clean
-7. Maximum 10 review iterations — if still failing after 10, STOP and ask the human for help
-8. Only then move to the next task
+2. **Commit** the work (one logical change per commit)
+3. Run `/simplify` to review changed code for reuse, quality, and efficiency
+4. If simplify finds issues: **fix and commit** the fixes as a separate commit (never amend)
+5. Run `/ai-review` to get a second-model review from Gemini
+6. If issues found: **fix and commit** as a separate commit, then run `/ai-review` again
+7. Repeat until the review comes back clean
+8. Maximum 10 review iterations — if still failing after 10, STOP and ask the human for help
+9. Only then move to the next task
+
+**History preservation:** every commit before and after review must be preserved. Never amend fixes into the original commit — the git log must tell the full story of what was built, what was found, and why it was changed. Fix commit messages should reference what triggered them (e.g., "fix simplify findings in SidecarParser").
 
 Work in PR-sized batches — each commit should be a self-contained, reviewable unit.
 
