@@ -119,4 +119,18 @@ public final class Slideshow {
         guard newIdx >= 0, newIdx < slides.count else { return }
         slides.swapAt(idx, newIdx)
     }
+
+    /// Persist current slide order to disk by renaming files with `\d{3}--` prefixes.
+    /// Uses FileReorderer's two-pass rename to avoid collisions.
+    public func persistReorder() {
+        guard let folderURL else { return }
+        let reorderer = FileReorderer()
+        let filenames = slides.map { $0.fileURL.lastPathComponent }
+        guard let renames = try? reorderer.reorder(in: folderURL, orderedFilenames: filenames) else { return }
+        for (oldURL, newURL) in renames {
+            if let slide = slides.first(where: { $0.fileURL == oldURL }) {
+                slide.fileURL = newURL
+            }
+        }
+    }
 }

@@ -19,7 +19,7 @@ struct SlideListPanel: View {
                 SlideRowView(slide: slide, index: index)
                     .tag(slide.id)
                     .contextMenu {
-                        Button("Quick Look") {
+                        Button("Reveal in Finder") {
                             NSWorkspace.shared.activateFileViewerSelecting([slide.fileURL])
                         }
 
@@ -39,19 +39,15 @@ struct SlideListPanel: View {
 
                         Button("Move Up") {
                             slideshow.moveSlide(slide, direction: -1)
+                            slideshow.persistReorder()
                         }
-                        .disabled(slideshow.slides.first?.id == slide.id)
+                        .disabled(index == 0)
 
                         Button("Move Down") {
                             slideshow.moveSlide(slide, direction: 1)
+                            slideshow.persistReorder()
                         }
-                        .disabled(slideshow.slides.last?.id == slide.id)
-
-                        Divider()
-
-                        Button("Reveal in Finder") {
-                            NSWorkspace.shared.activateFileViewerSelecting([slide.fileURL])
-                        }
+                        .disabled(index == filteredSlides.count - 1)
 
                         Divider()
 
@@ -62,8 +58,10 @@ struct SlideListPanel: View {
             }
             .onMove { indices, newOffset in
                 slideshow.slides.move(fromOffsets: indices, toOffset: newOffset)
+                slideshow.persistReorder()
             }
         }
         .listStyle(.inset(alternatesRowBackgrounds: true))
     }
+
 }
