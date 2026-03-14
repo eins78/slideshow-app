@@ -23,6 +23,12 @@ public struct SidecarParser: Sendable {
             return SidecarData(notes: trimmed)
         }
 
+        // Content starts with --- but no closing delimiter → treat as malformed frontmatter.
+        // Without this check, "---" would become a literal caption via parsePlainText.
+        if trimmed.hasPrefix("---") {
+            return SidecarData(notes: trimmed)
+        }
+
         // No frontmatter: first line = caption, rest = notes
         return parsePlainText(trimmed)
     }
