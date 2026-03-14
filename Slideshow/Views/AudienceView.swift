@@ -23,9 +23,9 @@ struct AudienceView: View {
         .task(id: slide?.id) {
             guard let slide else { displayImage = nil; return }
             let url = slide.fileURL
-            let image = await Task.detached {
-                await imageCache.fullNSImage(for: url)
-            }.value
+            // imageCache is an actor — awaiting directly is sufficient,
+            // no Task.detached needed (actor executor handles isolation)
+            let image = await imageCache.fullNSImage(for: url)
             displayImage = image
         }
     }

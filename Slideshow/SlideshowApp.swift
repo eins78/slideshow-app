@@ -82,6 +82,13 @@ struct SlideshowApp: App {
         // Security-scoped access required for sandboxed app
         guard url.startAccessingSecurityScopedResource() else { return }
 
+        // Stop accessing the previous slideshow's security-scoped resource
+        // before switching. Must balance start/stop calls.
+        // See: https://developer.apple.com/documentation/foundation/url/1779698-startaccessingsecurityscopedreso
+        if let oldURL = slideshow.folderURL, oldURL != url {
+            oldURL.stopAccessingSecurityScopedResource()
+        }
+
         bookmarkManager.saveBookmark(for: url)
         NSDocumentController.shared.noteNewRecentDocumentURL(url)
 
