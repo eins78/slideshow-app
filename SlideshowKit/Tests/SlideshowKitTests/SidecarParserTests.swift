@@ -128,4 +128,17 @@ struct SidecarParserTests {
         #expect(result.caption == "My Caption")
         #expect(result.notes == "Some notes.")
     }
+
+    @Test("Opening --- without closing delimiter does not become caption")
+    func unclosedFrontmatterDelimiter() {
+        let content = """
+        ---
+        caption: This was supposed to be frontmatter
+        """
+        let result = parser.parse(content)
+        // Should NOT have "---" as caption — treat as malformed frontmatter
+        #expect(result.caption == nil)
+        #expect(result.notes.contains("---"))
+        #expect(result.notes.contains("caption:"))
+    }
 }

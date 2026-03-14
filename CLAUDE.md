@@ -14,6 +14,7 @@ Two-target structure:
 
 - **SlideshowKit** — Swift Package (models + services). Platform-independent, testable via `swift test`. No UI dependencies.
 - **Slideshow** — macOS app target (SwiftUI views + AppKit interop for dual-screen presentation). Consumes SlideshowKit as a local package dependency.
+- **SlideshowUITests** — XCUITest target for UI integration tests. Launches app with `--ui-test-fixtures` for deterministic testing.
 
 Data flow uses `@Observable` (Observation framework). No Combine.
 
@@ -41,6 +42,13 @@ cd SlideshowKit && swift test --filter SlideshowKitTests.SidecarParserTests/test
 
 # Generate Xcode project (must run after changing project.yml or adding files)
 xcodegen generate
+
+# Run UI tests (XCUITest — launches the app automatically)
+xcodebuild test -scheme Slideshow -destination 'platform=macOS' -only-testing:SlideshowUITests
+
+# Run a single UI test
+xcodebuild test -scheme Slideshow -destination 'platform=macOS' \
+  -only-testing:SlideshowUITests/SlideshowUITests/testFixtureModeLoadsSlides
 
 # Build the full Xcode project (from project root)
 xcodebuild -scheme Slideshow -destination 'platform=macOS' build

@@ -11,6 +11,7 @@ struct FileInfoPanel: View {
                 Text("File Info")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .accessibilityAddTraits(.isHeader)
 
                 Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 3) {
                     infoRow("File", slide.fileURL.lastPathComponent)
@@ -77,4 +78,29 @@ struct FileInfoPanel: View {
                 .textSelection(.enabled)
         }
     }
+}
+
+#Preview("File Info — with EXIF") {
+    let slide = Slide(fileURL: URL(fileURLWithPath: "/tmp/003--sunset.jpg"))
+    slide.fileSize = 12_500_000
+    var exif = EXIFData()
+    exif.cameraModel = "FUJIFILM X-T5"
+    exif.lensModel = "XF23mmF1.4 R LM WR"
+    exif.focalLength = 23
+    exif.aperture = 8
+    exif.exposureTime = 1.0 / 250.0
+    exif.iso = 160
+    exif.imageWidth = 6240
+    exif.imageHeight = 4160
+    exif.dateTaken = Date()
+    slide.exif = exif
+    return FileInfoPanel(slide: slide)
+        .frame(width: 280, height: 400)
+}
+
+#Preview("File Info — no EXIF") {
+    let slide = Slide(fileURL: URL(fileURLWithPath: "/tmp/screenshot.png"))
+    slide.fileSize = 450_000
+    return FileInfoPanel(slide: slide)
+        .frame(width: 280, height: 200)
 }

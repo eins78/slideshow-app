@@ -20,7 +20,7 @@ struct AudienceView: View {
                 // Load completed but returned nil — show placeholder
                 Image(systemName: "photo")
                     .font(.system(size: 48))
-                    .foregroundStyle(.gray)
+                    .foregroundStyle(.secondary)
             } else if slide != nil {
                 ProgressView()
                     .tint(.white)

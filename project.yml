@@ -32,3 +32,27 @@ targets:
         GENERATE_INFOPLIST_FILE: true
     dependencies:
       - package: SlideshowKit
+
+  SlideshowUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources:
+      - path: SlideshowUITests
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: true
+    dependencies:
+      - target: Slideshow
+
+schemes:
+  Slideshow:
+    build:
+      targets:
+        Slideshow: all
+        SlideshowUITests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - SlideshowUITests

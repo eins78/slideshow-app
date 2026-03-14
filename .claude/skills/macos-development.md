@@ -198,6 +198,48 @@ curl -fsSL https://raw.githubusercontent.com/Techopolis/swift-agents/main/instal
 
 Key agents: `concurrency-specialist`, `mobile-a11y-specialist`, `swiftui-specialist`, `testing-specialist`, `performance-specialist`.
 
+## XCUITest from CLI
+
+UI tests run via `xcodebuild test` — no Xcode GUI interaction needed:
+
+```bash
+# All UI tests
+xcodebuild test -scheme Slideshow -destination 'platform=macOS' -only-testing:SlideshowUITests
+
+# Single test
+xcodebuild test -scheme Slideshow -destination 'platform=macOS' \
+  -only-testing:SlideshowUITests/SlideshowUITests/testFixtureModeLoadsSlides
+```
+
+### Test fixture mode
+
+The app supports `--ui-test-fixtures` launch argument that:
+1. Copies `Examples/Paintings That Tell Secrets.slideshow` to a temp directory
+2. Opens it automatically, bypassing file picker dialogs
+3. Provides 3 slides with real JPEGs, sidecars, and captions
+
+### Security-scoped resource pattern
+
+When accessing user-selected files in a sandboxed app:
+
+```swift
+// WRONG: bails on accessible but non-scoped URLs
+guard url.startAccessingSecurityScopedResource() else { return }
+
+// RIGHT: try access, only stop if start succeeded
+let didStartAccessing = url.startAccessingSecurityScopedResource()
+defer { if didStartAccessing { url.stopAccessingSecurityScopedResource() } }
+```
+
+`startAccessingSecurityScopedResource()` returns false for temp dirs and some file-importer URLs, but the files are still accessible via sandbox entitlements.
+
+### Limitations
+
+- XCUITest cannot interact with system file dialogs (NSOpenPanel/NSSavePanel)
+- Accessibility permission needed for osascript UI automation (not needed for XCUITest)
+- `screencapture` requires display context
+- Xcode MCP `RunAllTests` doesn't find SlideshowKit package tests — use `swift test` CLI
+
 ## Common Mistakes
 
 | Mistake | Fix |

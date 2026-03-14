@@ -21,7 +21,7 @@ struct PresenterView: View {
                     VStack(spacing: 4) {
                         Text("CURRENT")
                             .font(.caption)
-                            .foregroundStyle(.gray)
+                            .foregroundStyle(.secondary)
                         if let currentImage {
                             Image(nsImage: currentImage)
                                 .resizable().aspectRatio(contentMode: .fit)
@@ -31,7 +31,7 @@ struct PresenterView: View {
                             // Load completed but returned nil — show placeholder
                             Image(systemName: "photo")
                                 .font(.system(size: 48))
-                                .foregroundStyle(.gray)
+                                .foregroundStyle(.secondary)
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                         } else if slideshow.selectedSlide != nil {
                             ProgressView()
@@ -44,14 +44,14 @@ struct PresenterView: View {
                     VStack(spacing: 4) {
                         Text("NEXT")
                             .font(.caption)
-                            .foregroundStyle(.gray)
+                            .foregroundStyle(.secondary)
                         if let nextImage {
                             Image(nsImage: nextImage)
                                 .resizable().aspectRatio(contentMode: .fit)
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                         } else if nextSlide == nil {
                             Text("End")
-                                .foregroundStyle(.gray)
+                                .foregroundStyle(.secondary)
                                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                         }
                     }
@@ -61,7 +61,7 @@ struct PresenterView: View {
                 .frame(maxHeight: .infinity)
 
                 if showNotes {
-                    Divider().background(.gray)
+                    Divider().background(.secondary)
                     HStack {
                         ScrollView {
                             VStack(alignment: .leading, spacing: 4) {
@@ -78,7 +78,7 @@ struct PresenterView: View {
                         if let idx = slideshow.selectedIndex {
                             Text("\(idx + 1) / \(slideshow.slides.count)")
                                 .font(.largeTitle.monospacedDigit())
-                                .foregroundStyle(.gray)
+                                .foregroundStyle(.secondary)
                                 .padding(.horizontal, 20)
                         }
                     }

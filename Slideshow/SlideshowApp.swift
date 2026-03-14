@@ -13,9 +13,24 @@ extension EnvironmentValues {
     }
 }
 
+/// FocusedValue for triggering "New Slideshow" from the App menu.
+/// The App sets this to true; the focused DocumentView observes and acts.
+/// See: https://developer.apple.com/documentation/swiftui/focusedvaluekey
+struct CreateNewSlideshowKey: FocusedValueKey {
+    typealias Value = Binding<Bool>
+}
+
+extension FocusedValues {
+    var createNewSlideshow: Binding<Bool>? {
+        get { self[CreateNewSlideshowKey.self] }
+        set { self[CreateNewSlideshowKey.self] = newValue }
+    }
+}
+
 @main
 struct SlideshowApp: App {
     private let imageCache = ImageCache()
+    @FocusedValue(\.createNewSlideshow) private var createNewSlideshow
 
     var body: some Scene {
         WindowGroup {
@@ -27,7 +42,7 @@ struct SlideshowApp: App {
         .commands {
             CommandGroup(after: .newItem) {
                 Button("New Slideshow...") {
-                    createNewSlideshow()
+                    createNewSlideshow?.wrappedValue = true
                 }
                 .keyboardShortcut("n")
             }
@@ -37,17 +52,6 @@ struct SlideshowApp: App {
             SettingsView()
         }
     }
-
-    private func createNewSlideshow() {
-        let panel = NSSavePanel()
-        panel.allowedContentTypes = [UTType("is.kte.slideshow") ?? .folder]
-        panel.nameFieldStringValue = "Untitled.slideshow"
-        panel.begin { response in
-            guard response == .OK, let url = panel.url else { return }
-            try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
-            NSDocumentController.shared.noteNewRecentDocumentURL(url)
-        }
-    }
 }
 
 /// Per-window document root that owns its own slideshow state.
@@ -55,9 +59,11 @@ struct SlideshowApp: App {
 struct SlideshowDocumentView: View {
     @State private var slideshow = Slideshow()
     @State private var showFileImporter = false
+    @State private var showNewSlideshowPanel = false
     @State private var showPresenter = false
     @State private var presenterWindow: NSWindow?
     @State private var bookmarkManager = BookmarkManager()
+    @State private var scanError: Error?
     @Environment(\.imageCache) private var imageCache
 
     var body: some View {
@@ -72,6 +78,20 @@ struct SlideshowDocumentView: View {
             }
         }
         .environment(bookmarkManager)
+        .focusedSceneValue(\.createNewSlideshow, $showNewSlideshowPanel)
+        .onChange(of: showNewSlideshowPanel) {
+            if showNewSlideshowPanel {
+                showNewSlideshowPanel = false
+                createNewSlideshow()
+            }
+        }
+        .task {
+            if CommandLine.arguments.contains("--ui-test-fixtures") {
+                await loadUITestFixtures()
+            } else if CommandLine.arguments.contains("--ui-test-add-images") {
+                await loadUITestAddImages()
+            }
+        }
         .fileImporter(
             isPresented: $showFileImporter,
             allowedContentTypes: [.folder, UTType("is.kte.slideshow") ?? .folder],
@@ -84,6 +104,16 @@ struct SlideshowDocumentView: View {
         .onChange(of: showPresenter) {
             if showPresenter {
                 openPresenterWindow()
+            }
+        }
+        .alert("Could not open slideshow", isPresented: Binding(
+            get: { scanError != nil },
+            set: { if !$0 { scanError = nil } }
+        )) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            if let scanError {
+                Text(scanError.localizedDescription)
             }
         }
         .frame(minWidth: 600, minHeight: 400)
@@ -140,6 +170,69 @@ struct SlideshowDocumentView: View {
         presenterWindow = window
     }
 
+    /// Load test fixtures for UI testing — copies an example slideshow to a temp dir.
+    /// Activated by launch argument `--ui-test-fixtures`.
+    private func loadUITestFixtures() async {
+        let fm = FileManager.default
+        let tmpDir = fm.temporaryDirectory
+            .appending(path: "slideshow-ui-test-\(ProcessInfo.processInfo.processIdentifier)")
+        try? fm.removeItem(at: tmpDir)
+
+        // Use Examples from the source tree (resolved via #filePath)
+        let sourceExample = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .appending(path: "Examples/Paintings That Tell Secrets.slideshow")
+
+        if fm.fileExists(atPath: sourceExample.path(percentEncoded: false)) {
+            try? fm.copyItem(at: sourceExample, to: tmpDir)
+        } else {
+            // Fallback: minimal fixtures when Examples dir not present
+            try? fm.createDirectory(at: tmpDir, withIntermediateDirectories: true)
+            let jpeg = Data([0xFF, 0xD8, 0xFF, 0xD9])
+            for name in ["001--photo.jpg", "002--photo.jpg", "003--photo.jpg"] {
+                try? jpeg.write(to: tmpDir.appending(path: name))
+            }
+            try? "---\ncaption: Test slide\n---\nNotes"
+                .write(to: tmpDir.appending(path: "002--photo.jpg.md"),
+                       atomically: true, encoding: .utf8)
+        }
+
+        await openSlideshow(at: tmpDir)
+    }
+
+    /// Create an empty slideshow and add images programmatically.
+    /// Tests the addImages(from:) security-scope fix end-to-end.
+    /// Activated by launch argument `--ui-test-add-images`.
+    private func loadUITestAddImages() async {
+        let fm = FileManager.default
+        let tmpDir = fm.temporaryDirectory
+            .appending(path: "slideshow-ui-test-add-\(ProcessInfo.processInfo.processIdentifier)")
+        try? fm.removeItem(at: tmpDir)
+        try? fm.createDirectory(at: tmpDir, withIntermediateDirectories: true)
+
+        // Open the empty slideshow first
+        await openSlideshow(at: tmpDir)
+
+        // Find example images from the source tree
+        let examplesDir = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent().deletingLastPathComponent()
+            .appending(path: "Examples/Paintings That Tell Secrets.slideshow")
+
+        // Mirrors FolderScanner.imageExtensions — kept inline since that set is private
+        let imageExtensions: Set<String> = [
+            "jpg", "jpeg", "png", "heic", "heif", "tiff", "tif",
+            "raw", "dng", "cr2", "cr3", "nef", "arw", "orf", "rw2", "webp",
+        ]
+        let contents = (try? fm.contentsOfDirectory(
+            at: examplesDir,
+            includingPropertiesForKeys: nil
+        )) ?? []
+        let imageURLs = contents.filter { imageExtensions.contains($0.pathExtension.lowercased()) }
+        if !imageURLs.isEmpty {
+            slideshow.addImages(from: imageURLs)
+        }
+    }
+
     private func openSlideshow(at url: URL) async {
         // Stop accessing the previous slideshow's security-scoped resource
         // before starting the new one. Must balance start/stop calls.
@@ -148,7 +241,11 @@ struct SlideshowDocumentView: View {
             oldURL.stopAccessingSecurityScopedResource()
         }
 
-        guard url.startAccessingSecurityScopedResource() else { return }
+        // startAccessingSecurityScopedResource returns false for non-scoped URLs
+        // (e.g., temp dirs, some file-importer URLs). The URL may still be accessible
+        // via sandbox entitlements — only call stop if start succeeded.
+        // See: https://developer.apple.com/documentation/foundation/url/1779698-startaccessingsecurityscopedreso
+        let didStartAccessing = url.startAccessingSecurityScopedResource()
 
         bookmarkManager.saveBookmark(for: url)
         NSDocumentController.shared.noteNewRecentDocumentURL(url)
@@ -162,8 +259,8 @@ struct SlideshowDocumentView: View {
                 slideshow.selectedSlideID = first.id
             }
         } catch {
-            url.stopAccessingSecurityScopedResource()
-            print("Failed to scan folder: \(error)")
+            if didStartAccessing { url.stopAccessingSecurityScopedResource() }
+            scanError = error
         }
     }
 }

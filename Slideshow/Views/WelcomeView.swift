@@ -11,8 +11,15 @@ struct WelcomeView: View {
             Text("Present image slideshows with captions and presenter notes.")
         } actions: {
             Button("Open Slideshow...") { onOpen() }
+                .accessibilityIdentifier("openSlideshowButton")
                 .buttonStyle(.borderedProminent)
             Button("Create New...") { onNew() }
+                .accessibilityIdentifier("createNewButton")
         }
     }
+}
+
+#Preview("Welcome") {
+    WelcomeView(onOpen: {}, onNew: {})
+        .frame(width: 600, height: 400)
 }

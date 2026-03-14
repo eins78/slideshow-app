@@ -65,6 +65,7 @@ struct SlideListPanel: View {
                 .frame(width: 100, height: 80)
                 .background(Color(nsColor: .controlBackgroundColor))
                 .clipShape(RoundedRectangle(cornerRadius: 6))
+                .accessibilityHidden(true)
 
             Text(slide.strippedFilename)
                 .font(.caption)
@@ -118,4 +119,30 @@ struct SlideListPanel: View {
             slideshow.removeSlide(slide)
         }
     }
+}
+
+#Preview("Slide List — List Mode") {
+    let slideshow = Slideshow(folderURL: URL(fileURLWithPath: "/tmp/demo.slideshow"))
+    let slides = [
+        Slide(fileURL: URL(fileURLWithPath: "/tmp/001--intro.jpg"),
+              sidecar: SidecarData(caption: "Intro")),
+        Slide(fileURL: URL(fileURLWithPath: "/tmp/002--sunset.jpg"),
+              sidecar: SidecarData(caption: "Golden hour")),
+        Slide(fileURL: URL(fileURLWithPath: "/tmp/003--portrait.jpg")),
+    ]
+    for slide in slides { slide.fileSize = 2_000_000 }
+    slideshow.slides = slides
+    slideshow.selectedSlideID = slides[0].id
+    return SlideListPanel(slideshow: slideshow, viewMode: .list)
+        .frame(width: 350, height: 400)
+}
+
+#Preview("Slide List — Grid Mode") {
+    let slideshow = Slideshow(folderURL: URL(fileURLWithPath: "/tmp/demo.slideshow"))
+    let slides = (1...8).map { i in
+        Slide(fileURL: URL(fileURLWithPath: "/tmp/\(String(format: "%03d", i))--photo-\(i).jpg"))
+    }
+    slideshow.slides = slides
+    return SlideListPanel(slideshow: slideshow, viewMode: .grid)
+        .frame(width: 400, height: 400)
 }

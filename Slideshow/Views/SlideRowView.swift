@@ -33,6 +33,26 @@ struct SlideRowView: View {
                     .foregroundStyle(.secondary)
             }
         }
+        .accessibilityElement(children: .combine)
         .accessibilityLabel("\(index + 1). \(slide.displayName)")
     }
+}
+
+#Preview("Slide Row — with caption") {
+    let slide = Slide(
+        fileURL: URL(fileURLWithPath: "/tmp/003--sunset.jpg"),
+        sidecar: SidecarData(caption: "Golden hour at the lake")
+    )
+    slide.fileSize = 2_450_000
+    return SlideRowView(slide: slide, index: 2)
+        .frame(width: 350)
+        .padding()
+}
+
+#Preview("Slide Row — no caption") {
+    let slide = Slide(fileURL: URL(fileURLWithPath: "/tmp/beach-photo.jpg"))
+    slide.fileSize = 8_100_000
+    return SlideRowView(slide: slide, index: 0)
+        .frame(width: 350)
+        .padding()
 }
