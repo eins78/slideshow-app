@@ -138,6 +138,10 @@ Domain-specific rules in `.claude/rules/`:
 - `testing.md` — Swift Testing framework conventions
 - `git-and-workflow.md` — git conventions, review workflow, plot readiness
 
+### Skills
+
+- `.claude/skills/macos-development.md` — Xcode MCP bridge, CLI build/test, accessibility auditing, independent testing workflow
+
 ## Code Review Context
 
 Context for external reviewers (Gemini, OpenAI) who lack access to the full codebase:
