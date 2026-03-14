@@ -17,6 +17,7 @@ extension EnvironmentValues {
 struct SlideshowMobileApp: App {
     @State private var slideshow = Slideshow()
     @State private var showFileImporter = false
+    @State private var accessingSecurityScope = false
     private let imageCache = ImageCache()
 
     var body: some Scene {
@@ -54,8 +55,14 @@ struct SlideshowMobileApp: App {
     }
 
     private func openSlideshow(at url: URL) async {
-        let accessing = url.startAccessingSecurityScopedResource()
-        defer { if accessing { url.stopAccessingSecurityScopedResource() } }
+        // Stop previous security-scoped access if any
+        if accessingSecurityScope, let previous = slideshow.folderURL {
+            previous.stopAccessingSecurityScopedResource()
+        }
+
+        // Keep security-scoped access alive for the lifetime of the slideshow
+        // so ImageCache can read files on demand
+        accessingSecurityScope = url.startAccessingSecurityScopedResource()
 
         let scanner = FolderScanner()
         do {
@@ -67,6 +74,10 @@ struct SlideshowMobileApp: App {
             }
         } catch {
             print("[slideshow-mobile] failed to scan folder: \(error)")
+            if accessingSecurityScope {
+                url.stopAccessingSecurityScopedResource()
+                accessingSecurityScope = false
+            }
         }
     }
 }

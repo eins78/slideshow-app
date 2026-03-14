@@ -46,6 +46,8 @@ targets:
         GENERATE_INFOPLIST_FILE: false
         SUPPORTED_PLATFORMS: "iphoneos iphonesimulator"
         SUPPORTS_MACCATALYST: false
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: X8VJSFQ9QC
     dependencies:
       - package: SlideshowKit
 
