@@ -18,10 +18,12 @@ public struct EXIFData: Equatable, Sendable {
     public init() {}
 
     /// Formatted shutter speed (e.g., "1/250s" or "2s").
+    /// Camera-standard fractional seconds (1.3, 1.6, 2.5) shown with one decimal.
     public var shutterSpeedString: String? {
         guard let t = exposureTime else { return nil }
         if t >= 1 {
-            return "\(Int(t))s"
+            let rounded = (t * 10).rounded() / 10
+            return rounded == rounded.rounded() ? "\(Int(rounded))s" : String(format: "%.1fs", rounded)
         } else {
             return "1/\(Int(round(1.0 / t)))s"
         }

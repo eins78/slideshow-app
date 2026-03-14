@@ -13,9 +13,24 @@ extension EnvironmentValues {
     }
 }
 
+/// FocusedValue for the per-window "open slideshow" action.
+/// Allows App-level menu commands to trigger document-level navigation.
+/// See: https://developer.apple.com/documentation/swiftui/focusedvaluekey
+struct OpenSlideshowURLKey: FocusedValueKey {
+    typealias Value = (URL) -> Void
+}
+
+extension FocusedValues {
+    var openSlideshowURL: ((URL) -> Void)? {
+        get { self[OpenSlideshowURLKey.self] }
+        set { self[OpenSlideshowURLKey.self] = newValue }
+    }
+}
+
 @main
 struct SlideshowApp: App {
     private let imageCache = ImageCache()
+    @FocusedValue(\.openSlideshowURL) private var openSlideshowURL
 
     var body: some Scene {
         WindowGroup {
@@ -46,6 +61,7 @@ struct SlideshowApp: App {
             guard response == .OK, let url = panel.url else { return }
             try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
             NSDocumentController.shared.noteNewRecentDocumentURL(url)
+            self.openSlideshowURL?(url)
         }
     }
 }
@@ -72,6 +88,9 @@ struct SlideshowDocumentView: View {
             }
         }
         .environment(bookmarkManager)
+        .focusedSceneValue(\.openSlideshowURL) { [self] url in
+            Task { await openSlideshow(at: url) }
+        }
         .fileImporter(
             isPresented: $showFileImporter,
             allowedContentTypes: [.folder, UTType("is.kte.slideshow") ?? .folder],

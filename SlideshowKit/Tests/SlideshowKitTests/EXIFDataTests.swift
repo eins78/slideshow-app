@@ -25,6 +25,19 @@ struct EXIFDataTests {
         #expect(exif.shutterSpeedString == "1s")
     }
 
+    @Test("shutterSpeedString formats camera-standard fractional seconds")
+    func fractionalSecondShutter() {
+        var exif = EXIFData()
+        exif.exposureTime = 1.3
+        #expect(exif.shutterSpeedString == "1.3s")
+
+        exif.exposureTime = 1.6
+        #expect(exif.shutterSpeedString == "1.6s")
+
+        exif.exposureTime = 2.5
+        #expect(exif.shutterSpeedString == "2.5s")
+    }
+
     @Test("shutterSpeedString returns nil when no exposure")
     func nilShutter() {
         let exif = EXIFData()
