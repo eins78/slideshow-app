@@ -3,7 +3,7 @@ import MapKit
 import SlideshowKit
 
 struct FileInfoPanel: View {
-    @Bindable var slide: Slide
+    let slide: Slide
 
     var body: some View {
         ScrollView {
