@@ -4,10 +4,9 @@ import SlideshowKit
 // Binds directly to Slide computed properties (no double-state).
 // Debounces disk writes at 500ms — critical for iCloud Drive.
 struct EditorPanel: View {
+    var slideshow: Slideshow
     @Bindable var slide: Slide
     @State private var saveTask: Task<Void, Never>?
-
-    private let sidecarWriter = SidecarWriter()
 
     var body: some View {
         ScrollView {
@@ -54,8 +53,7 @@ struct EditorPanel: View {
         saveTask = Task {
             try? await Task.sleep(for: .milliseconds(500))
             guard !Task.isCancelled else { return }
-            guard let sidecar = slide.sidecar else { return }
-            try? sidecarWriter.write(sidecar, to: slide.sidecarURL)
+            slideshow.saveSidecar(for: slide)
         }
     }
 }

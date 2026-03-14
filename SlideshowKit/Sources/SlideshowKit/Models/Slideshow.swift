@@ -115,6 +115,13 @@ public final class Slideshow {
         }
     }
 
+    /// Write a slide's sidecar data to disk.
+    public func saveSidecar(for slide: Slide) {
+        guard let sidecar = slide.sidecar else { return }
+        let writer = SidecarWriter()
+        try? writer.write(sidecar, to: slide.sidecarURL)
+    }
+
     /// Move a slide up or down by one position.
     public func moveSlide(_ slide: Slide, direction: Int) {
         guard let idx = slides.firstIndex(where: { $0.id == slide.id }) else { return }

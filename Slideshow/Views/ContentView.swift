@@ -34,7 +34,7 @@ struct ContentView: View {
                 .inspector(isPresented: $showInspector) {
                     if let slide = slideshow.selectedSlide {
                         VStack(spacing: 0) {
-                            EditorPanel(slide: slide)
+                            EditorPanel(slideshow: slideshow, slide: slide)
                             Divider()
                             FileInfoPanel(slide: slide)
                         }
