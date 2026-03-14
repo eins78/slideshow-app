@@ -67,6 +67,8 @@ private struct SlideImageView: View {
                 Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
+                    .accessibilityLabel(slide.displayName)
+                    .accessibilityAddTraits(.isImage)
             } else {
                 ProgressView()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -83,6 +85,7 @@ private struct SlideImageView: View {
                     .padding(.vertical, 6)
                     .background(.ultraThinMaterial, in: .capsule)
                     .padding(.bottom, 8)
+                    .accessibilityHidden(true)
             }
         }
     }
@@ -104,6 +107,7 @@ private struct ThumbnailView: View {
                     .aspectRatio(contentMode: .fill)
             } else {
                 Color.secondary.opacity(0.2)
+                    .accessibilityHidden(true)
             }
         }
         .frame(width: 60, height: 60)
@@ -112,6 +116,9 @@ private struct ThumbnailView: View {
             RoundedRectangle(cornerRadius: 6)
                 .stroke(isSelected ? Color.accentColor : .clear, lineWidth: 2)
         )
+        .accessibilityLabel(slide.displayName)
+        .accessibilityAddTraits([.isImage, .isButton])
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
         .task(id: slide.id) {
             thumbnail = await imageCache.thumbnailUIImage(for: slide.fileURL)
         }
