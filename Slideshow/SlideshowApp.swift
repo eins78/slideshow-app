@@ -218,18 +218,18 @@ struct SlideshowDocumentView: View {
             .deletingLastPathComponent().deletingLastPathComponent()
             .appending(path: "Examples/Paintings That Tell Secrets.slideshow")
 
-        if fm.fileExists(atPath: examplesDir.path(percentEncoded: false)) {
-            let contents = (try? fm.contentsOfDirectory(
-                at: examplesDir,
-                includingPropertiesForKeys: nil
-            )) ?? []
-            let imageURLs = contents.filter { url in
-                let ext = url.pathExtension.lowercased()
-                return ["jpg", "jpeg", "png", "tiff", "heic"].contains(ext)
-            }
-            if !imageURLs.isEmpty {
-                slideshow.addImages(from: imageURLs)
-            }
+        // Mirrors FolderScanner.imageExtensions — kept inline since that set is private
+        let imageExtensions: Set<String> = [
+            "jpg", "jpeg", "png", "heic", "heif", "tiff", "tif",
+            "raw", "dng", "cr2", "cr3", "nef", "arw", "orf", "rw2", "webp",
+        ]
+        let contents = (try? fm.contentsOfDirectory(
+            at: examplesDir,
+            includingPropertiesForKeys: nil
+        )) ?? []
+        let imageURLs = contents.filter { imageExtensions.contains($0.pathExtension.lowercased()) }
+        if !imageURLs.isEmpty {
+            slideshow.addImages(from: imageURLs)
         }
     }
 
