@@ -72,44 +72,15 @@ public final class Slideshow {
         guard let url = documentURL else { return }
         document.slides = slides.map(\.section)
         let content = SlideshowWriter().write(document)
-
-        var coordinatorError: NSError?
-        var writeError: Error?
-        let coordinator = NSFileCoordinator(filePresenter: filePresenter)
-        coordinator.coordinate(
-            writingItemAt: url,
-            options: .forReplacing,
-            error: &coordinatorError
-        ) { writeURL in
-            do {
-                try content.write(to: writeURL, atomically: true, encoding: .utf8)
-            } catch {
-                writeError = error
-            }
-        }
-        if let error = writeError ?? coordinatorError { throw error }
+        try coordinatedWrite(content, to: url)
     }
 
     /// Save raw text to disk (preserving user's exact formatting), then parse to update the model.
     /// Used by the text view — writes the user's text as-is, then syncs the in-memory model.
+    /// Must remain synchronous — SlideshowTextView relies on this for isUpdatingFromSave guard.
     public func saveRawText(_ text: String) throws {
         guard let url = documentURL else { return }
-
-        var coordinatorError: NSError?
-        var writeError: Error?
-        let coordinator = NSFileCoordinator(filePresenter: filePresenter)
-        coordinator.coordinate(
-            writingItemAt: url,
-            options: .forReplacing,
-            error: &coordinatorError
-        ) { writeURL in
-            do {
-                try text.write(to: writeURL, atomically: true, encoding: .utf8)
-            } catch {
-                writeError = error
-            }
-        }
-        if let error = writeError ?? coordinatorError { throw error }
+        try coordinatedWrite(text, to: url)
 
         let parsed = SlideshowParser().parse(text)
 
@@ -134,6 +105,26 @@ public final class Slideshow {
             prevCaption: prevCaption,
             prevIndex: prevIndex
         )
+    }
+
+    // MARK: - Coordinated file writing
+
+    private func coordinatedWrite(_ string: String, to url: URL) throws {
+        var coordinatorError: NSError?
+        var writeError: Error?
+        let coordinator = NSFileCoordinator(filePresenter: filePresenter)
+        coordinator.coordinate(
+            writingItemAt: url,
+            options: .forReplacing,
+            error: &coordinatorError
+        ) { writeURL in
+            do {
+                try string.write(to: writeURL, atomically: true, encoding: .utf8)
+            } catch {
+                writeError = error
+            }
+        }
+        if let error = writeError ?? coordinatorError { throw error }
     }
 
     // MARK: - File watching

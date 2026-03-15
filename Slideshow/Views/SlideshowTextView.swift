@@ -58,8 +58,9 @@ struct SlideshowTextView: View {
     }
 
     private func loadTextFromModel() {
-        slideshow.document.slides = slideshow.slides.map(\.section)
-        let serialized = SlideshowWriter().write(slideshow.document)
+        var doc = slideshow.document
+        doc.slides = slideshow.slides.map(\.section)
+        let serialized = SlideshowWriter().write(doc)
         text = serialized
         lastSavedText = serialized
         isDirty = false
@@ -69,10 +70,14 @@ struct SlideshowTextView: View {
     private func saveTextToModel() {
         isUpdatingFromSave = true
         defer { isUpdatingFromSave = false }
-        try? slideshow.saveRawText(text)
-        lastSavedText = text
-        isDirty = false
-        hostWindow?.isDocumentEdited = false
+        do {
+            try slideshow.saveRawText(text)
+            lastSavedText = text
+            isDirty = false
+            hostWindow?.isDocumentEdited = false
+        } catch {
+            // Leave dirty state unchanged — user still sees unsaved indicator
+        }
     }
 }
 

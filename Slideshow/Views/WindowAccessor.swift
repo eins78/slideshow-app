@@ -15,8 +15,10 @@ struct WindowAccessor: NSViewRepresentable {
     }
 
     func updateNSView(_ nsView: NSView, context: Context) {
-        DispatchQueue.main.async {
-            self.window = nsView.window
+        if window !== nsView.window {
+            DispatchQueue.main.async {
+                self.window = nsView.window
+            }
         }
     }
 }
