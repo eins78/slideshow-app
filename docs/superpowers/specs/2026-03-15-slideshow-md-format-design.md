@@ -138,7 +138,7 @@ An H3 heading (`###`) within a slide section. Displayed as the slide's caption/t
 
 Standard markdown image syntax. References an image file in the same folder as the `.md` file.
 
-- **Filename only** — no paths, no URLs. The image must be in the same directory as the project file.
+- **Filename only** — no paths, no URLs. The image must be in the same directory as the project file. The parser rejects references containing path separators (`/`, `\`) or path traversal (`..`) — only the bare filename is accepted.
 - **Filename escaping** — filenames with spaces or special characters (parentheses, etc.) must be valid CommonMark. The writer uses angle bracket syntax for such filenames: `![](<my image (1).jpg>)`. The parser accepts both plain and angle-bracketed filenames.
 - **Alt text** — optional. Used as the accessibility description (VoiceOver). If empty (`![](file.jpg)`), the app falls back to the caption, then the image's own filename (per-image, not per-slide).
 - **Multiple images per slide** — 0 to N images allowed. Each `![](...)` on its own line is a separate image in the slide.
@@ -169,7 +169,7 @@ Blank lines within notes are fine.
 They remain part of the notes.
 ```
 
-Paragraphs and lists — text blocks that swift-markdown parses as `Paragraph` or `List` elements. This is the presenter-only content, not shown on the audience display. Other non-paragraph block elements (tables, code blocks, HTML blocks) are NOT notes — they become unrecognized content.
+Rich markdown content — paragraphs, lists, tables, code blocks, and H4-H6 headings. This is the presenter-only content, not shown on the audience display. HTML blocks are NOT notes — they become unrecognized content.
 
 - Can contain blank lines between paragraphs (blank lines do NOT end the notes section)
 - Can contain inline markdown formatting (bold, italic, links) — preserved as-is
@@ -208,8 +208,8 @@ When the app writes back a slide that contained markdown elements it didn't pars
    - **Image extraction** — only from top-level `Paragraph` nodes: if a paragraph contains one or more `Image` inline nodes, extract them as image references (ordered by appearance). A paragraph that contains ONLY image nodes (and whitespace) is consumed entirely (not included in notes). A paragraph that mixes images with other text: extract the images, keep the remaining text as notes. Images inside non-paragraph blocks (tables, lists, blockquotes, code blocks) are NOT extracted — they remain in the unrecognized content blob.
    - First contiguous `> blockquote` → source/credit. Additional blockquotes → unrecognized content.
    - Remaining `Paragraph` nodes (those not fully consumed by image extraction) → presenter notes (concatenated in order, preserving blank lines between them)
-   - All other block elements (tables, code blocks, HTML blocks, additional H3 headings not used as caption, and all other heading levels) → unrecognized content
-   - **Exception: lists in notes** — ordered and unordered lists (`List` nodes) that appear among presenter note paragraphs are treated as part of the notes (not unrecognized content). This supports natural markdown note-taking with bullet points.
+   - All other block elements (HTML blocks, additional H3 headings not used as caption) → unrecognized content
+   - **Rich notes exception** — lists (ordered/unordered), tables, code blocks, and headings H4-H6 that appear among presenter notes are treated as part of the notes (not unrecognized content). This supports natural markdown note-taking with bullet points, comparison tables, code snippets, and sub-headings for organizing notes.
 6. **Empty file or whitespace-only file** → valid, zero slides.
 7. **Image filename matching** — case-insensitive. `![](Photo.JPG)` matches `photo.jpg` on disk.
 
@@ -218,18 +218,13 @@ When the app writes back a slide that contained markdown elements it didn't pars
 1. **Frontmatter** — ALWAYS write frontmatter with at least the `format` key. This ensures the file never starts with a bare `---` that could be misinterpreted as a slide separator on re-read. Unknown keys preserved. `Yams.dump(sortedKeys: true)`.
 2. **Title** — write as `# Title` if present.
 3. **Header content** — write back the header content blob verbatim if present (preserved from parse, includes any project-level notes, images, blockquotes, or other content).
-4. **For each slide**, write in order:
+4. **For each slide**, write elements in this order, with a single blank line between each present element (omit blank lines for absent elements):
    - `---` separator
-   - Blank line
    - `### Caption` (if present)
-   - Blank line
-   - `![alt](filename)` for each image (if any)
-   - Blank line
+   - `![alt](filename)` for each image (if any). Filenames with spaces or special characters use angle bracket syntax: `![](<my image.jpg>)`.
    - `> source` lines (if present)
-   - Blank line
    - Presenter notes (if present)
    - `### Unrecognized content` heading + blob (if any). The blob is stored WITHOUT the heading — the writer adds the heading on output.
-   - Blank line
 5. **Trailing `---`** after last slide.
 6. **Trailing newline** at end of file.
 7. **Atomic writes** — write to temp file, then rename.
@@ -240,7 +235,7 @@ When the app writes back a slide that contained markdown elements it didn't pars
 
 The app can open:
 
-1. **A `.md` file directly** — any name. The file is treated as a slideshow if it has `format:` in its YAML frontmatter matching the known format URL. Files without matching frontmatter are not opened as slideshows (the app shows an error). Images are resolved relative to the `.md` file's directory.
+1. **A `.md` file directly** — any name. The file is treated as a slideshow if it has `format:` in its YAML frontmatter matching the known format URL. Files without matching frontmatter are not opened as slideshows (the app shows an error). Exception: files named `slideshow.md` do not require frontmatter (they are recognized by convention). Images are resolved relative to the `.md` file's directory.
 2. **A folder** — looks for `slideshow.md` in the folder. If found, opens it. If not found, falls back to scanning for images (backward compatibility with folders that have no project file yet).
 
 ### Data model mapping
