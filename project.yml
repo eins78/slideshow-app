@@ -3,6 +3,7 @@ options:
   bundleIdPrefix: is.kte
   deploymentTarget:
     macOS: "26.0"
+    iOS: "26.0"
   xcodeVersion: "26.3"
   generateEmptyDirectories: true
   groupSortPosition: top
@@ -11,6 +12,9 @@ settings:
   base:
     SWIFT_VERSION: "6"
     SWIFT_STRICT_CONCURRENCY: complete
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    DEVELOPMENT_TEAM: X8VJSFQ9QC
 
 packages:
   SlideshowKit:
@@ -31,6 +35,27 @@ targets:
         INFOPLIST_FILE: Slideshow/Info.plist
         CODE_SIGN_ENTITLEMENTS: Slideshow/Slideshow.entitlements
         GENERATE_INFOPLIST_FILE: true
+    dependencies:
+      - package: SlideshowKit
+
+  SlideshowMobile:
+    type: application
+    platform: iOS
+    sources:
+      - path: SlideshowMobile
+        excludes:
+          - "*.entitlements"
+      - path: Slideshow/Assets.xcassets
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: is.kte.slideshow
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        INFOPLIST_FILE: SlideshowMobile/Info.plist
+        CODE_SIGN_ENTITLEMENTS: SlideshowMobile/SlideshowMobile.entitlements
+        GENERATE_INFOPLIST_FILE: false
+        SUPPORTED_PLATFORMS: "iphoneos iphonesimulator"
+        SUPPORTS_MACCATALYST: false
+        CODE_SIGN_STYLE: Automatic
     dependencies:
       - package: SlideshowKit
 
@@ -57,3 +82,10 @@ schemes:
       config: Debug
       targets:
         - SlideshowUITests
+
+  SlideshowMobile:
+    build:
+      targets:
+        SlideshowMobile: all
+    run:
+      config: Debug
