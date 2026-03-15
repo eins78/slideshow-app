@@ -11,7 +11,9 @@ struct SlideshowTextView: View {
 
     @State private var text = ""
     @State private var lastSavedText = ""
-    @State private var isUpdatingFromSave = false
+    /// Tracks the last document state we know about (from load or save).
+    /// Used to distinguish self-writes from external file changes in onChange.
+    @State private var lastSeenDocument: SlideshowDocument?
 
     var body: some View {
         TextEditor(text: $text)
@@ -19,6 +21,7 @@ struct SlideshowTextView: View {
             .accessibilityLabel("Slideshow document")
             .accessibilityIdentifier("slideshowTextEditor")
             .task {
+                lastSeenDocument = slideshow.document
                 loadTextFromModel()
             }
             .onChange(of: text) {
@@ -32,7 +35,10 @@ struct SlideshowTextView: View {
                 saveTrigger = false
             }
             .onChange(of: slideshow.document) {
-                guard !isUpdatingFromSave, !isDirty else { return }
+                // Skip if this is our own save (document matches what we just wrote)
+                guard slideshow.document != lastSeenDocument else { return }
+                lastSeenDocument = slideshow.document
+                guard !isDirty else { return }
                 loadTextFromModel()
             }
             .task {
@@ -73,10 +79,9 @@ struct SlideshowTextView: View {
     }
 
     private func saveTextToModel() {
-        isUpdatingFromSave = true
-        defer { isUpdatingFromSave = false }
         do {
             try slideshow.saveRawText(text)
+            lastSeenDocument = slideshow.document
             lastSavedText = text
             isDirty = false
             hostWindow?.isDocumentEdited = false
