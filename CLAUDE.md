@@ -72,12 +72,12 @@ This git repo (`/Users/mfa/CODE/slideshow-app`) is the working directory. The Xc
 A slideshow project is a folder of images with a `slideshow.md` file. The `.md` file curates the presentation — only referenced images are in the show. Without it, the folder name becomes the title and each image becomes a slide. The app manages file I/O directly — **not** using `DocumentGroup`/`ReferenceFileDocument` (autosave conflicts with direct file writes, `FileWrapper` overhead prohibitive for large image bundles).
 
 ### slideshow.md Format
-Single markdown file per presentation. Uses `---` separators between slides. See `docs/superpowers/specs/2026-03-15-slideshow-md-format-design.md` for full specification.
+Single markdown file per presentation. Uses `---` separators between slides. See `docs/slideshow-md-format.md` for the living format reference.
 
 Key parsing rules:
-- YAML frontmatter with `format:` URL for identification
+- YAML frontmatter with `format:` URL for identification and `title:` for presentation title
 - `---` separators between slides (universal markdown-presentation convention)
-- Headings → captions, `![](filename.jpg)` → image references, `> blockquotes` → source/credit
+- Headings → slide captions (any level; `#` recommended), `![](filename.jpg)` → image references, `> blockquotes` → source/credit
 - Plain paragraphs/lists/tables/code → presenter notes
 - Unknown content preserved under `### Unrecognized content` heading on write-back
 - Multiple `.md` files can curate different presentations from the same images
@@ -133,7 +133,7 @@ When a review repeatedly flags a deliberate design choice that we won't change, 
 - EditorPanel disk writes debounced (500ms) — critical for iCloud Drive
 - File operations (removeSlide, moveSlide, addImages, save) live on the `Slideshow` model, not in views
 - `addImages()` is incremental (no full re-scan)
-- `SlideshowWriter` always writes frontmatter with `format:` key to prevent `---` ambiguity
+- `SlideshowWriter` always writes frontmatter with `format:` and `title:` keys to prevent `---` ambiguity
 - Bundle identifier: `is.ars.slideshow`
 
 ### Detailed Rules
@@ -172,5 +172,6 @@ Context for external reviewers (Gemini, OpenAI) who lack access to the full code
 
 - Design spec: `~/OPS/home-workspace/docs/superpowers/specs/2026-03-14-slideshow-app-design.md`
 - Implementation plan: `~/OPS/home-workspace/docs/superpowers/specs/2026-03-14-slideshow-implementation-plan.md`
-- slideshow.md format spec: `docs/superpowers/specs/2026-03-15-slideshow-md-format-design.md`
-- slideshow.md implementation plan: `docs/superpowers/plans/2026-03-15-slideshow-md-format.md`
+- slideshow.md format reference: `docs/slideshow-md-format.md`
+- slideshow.md format design (historical): `docs/superpowers/specs/2026-03-15-slideshow-md-format-design.md`
+- slideshow.md implementation plan (historical): `docs/superpowers/plans/2026-03-15-slideshow-md-format.md`

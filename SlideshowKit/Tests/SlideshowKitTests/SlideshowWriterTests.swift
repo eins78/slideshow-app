@@ -13,7 +13,8 @@ struct SlideshowWriterTests {
         let doc = SlideshowDocument(title: "My Title")
         let output = writer.write(doc)
         #expect(output.contains("format:"))
-        #expect(output.contains("# My Title"))
+        #expect(output.contains("title: My Title"))
+        #expect(!output.contains("# My Title"))
         #expect(output.hasSuffix("\n"))
     }
 
@@ -106,7 +107,8 @@ struct SlideshowWriterTests {
             headerContent: "Some intro text.\n\nAnother paragraph."
         )
         let output = writer.write(doc)
-        #expect(output.contains("# My Title"))
+        #expect(output.contains("title: My Title"))
+        #expect(!output.contains("# My Title"))
         #expect(output.contains("Some intro text."))
         #expect(output.contains("Another paragraph."))
     }
@@ -132,13 +134,12 @@ struct SlideshowWriterTests {
         let input = """
         ---
         format: https://example.com/slideshow/v1
+        title: Paintings That Tell Secrets
         ---
 
-        # Paintings That Tell Secrets
-
         ---
 
-        ### Golden hour, Wollishofen
+        # Golden hour, Wollishofen
 
         ![Lakeside view](golden-hour.jpg)
 
@@ -149,7 +150,7 @@ struct SlideshowWriterTests {
 
         ---
 
-        ### The old bridge
+        # The old bridge
 
         ![](bridge-sunset.jpg)
 
@@ -157,7 +158,7 @@ struct SlideshowWriterTests {
 
         ---
 
-        ### Introduction
+        # Introduction
 
         Welcome to this portfolio review.
 
@@ -185,9 +186,8 @@ struct SlideshowWriterTests {
         ---
         custom: hello
         format: https://example.com/slideshow/v1
+        title: Title
         ---
-
-        # Title
 
         ---
 
