@@ -55,7 +55,7 @@ xcodebuild archive -project Slideshow.xcodeproj \
 
 ## 4. Upload
 
-### macOS — CLI works
+### macOS
 
 ```bash
 xcodebuild -exportArchive \
@@ -64,16 +64,21 @@ xcodebuild -exportArchive \
   -allowProvisioningUpdates
 ```
 
+### iOS
+
+```bash
+brew unlink rsync    # workaround for Xcode 26 beta rsync mismatch
+xcodebuild -exportArchive \
+  -archivePath ./build/Slideshow-iOS.xcarchive \
+  -exportOptionsPlist ExportOptions.plist \
+  -exportPath ./build/export-ios \
+  -allowProvisioningUpdates
+brew link rsync      # restore after upload
+```
+
 The `ExportOptions.plist` at repo root configures `app-store-connect` method with team ID.
 
-### iOS — use Xcode Organizer
-
-> **Known issue (Xcode 26 beta):** CLI `exportArchive` for iOS fails with `rsync --extended-attributes` error during IPA creation. This is a toolchain bug, not a project issue. Use the GUI instead.
-
-1. Open Xcode > Window > Organizer (or the archive appears automatically after `xcodebuild archive`)
-2. Select the iOS archive
-3. Distribute App > TestFlight Internal Only
-4. Follow prompts (automatic signing)
+Alternatively, use Xcode GUI: Window > Organizer > select archive > Distribute App > TestFlight Internal Only.
 
 ## 5. Verify
 
@@ -111,9 +116,21 @@ Add `LSHandlerRank` to each `CFBundleDocumentTypes` entry:
 
 Every upload (including internal TestFlight) requires `PrivacyInfo.xcprivacy`. The project includes one declaring file timestamp and user defaults API usage.
 
-### iOS export "Copy failed"
+### CLI and Xcode GUI archives are independent
 
-`rsync` version mismatch in Xcode 26 beta. Use Xcode Organizer GUI for iOS distribution. macOS CLI export is unaffected.
+Xcode Organizer and `xcodebuild archive` use separate build pipelines. An archive created by CLI won't appear in Organizer, and vice versa. If you change code after a CLI archive, the GUI will rebuild — resulting in a new build number. To keep build numbers predictable, pick one workflow and stick with it.
+
+### iOS export "Copy failed" (rsync error)
+
+Xcode 26 beta invokes `/usr/bin/rsync` with `--extended-attributes` (`-E`), but if Homebrew's rsync 3.4.1 is linked, it creates a version mismatch between client (system openrsync) and server (Homebrew rsync). Fix:
+
+```bash
+brew unlink rsync        # before distributing
+# ... distribute in Xcode Organizer ...
+brew link rsync          # restore after
+```
+
+Affects both CLI and GUI for iOS. macOS export is unaffected (no IPA/rsync step).
 
 ## Reference
 
