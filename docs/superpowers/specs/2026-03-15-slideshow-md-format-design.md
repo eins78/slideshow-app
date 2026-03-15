@@ -124,11 +124,12 @@ A horizontal rule (`---`) on its own line separates slides. This is the universa
 ### Golden hour, Wollishofen
 ```
 
-An H3 heading (`###`) within a slide section. Displayed as the slide's caption/title.
+Any heading (`#` through `######`) within a slide section. Displayed as the slide's caption/title. The heading level is preserved on round-trip but does not affect semantics — all levels are treated equally as captions.
 
-- At most one caption per slide (first H3 wins; additional H3s are treated as unknown content)
+- At most one caption per slide (first heading wins; additional headings are treated as unrecognized content)
 - Optional — slides without a caption are valid
 - Position within the slide section does not matter (parser extracts it regardless of where it appears)
+- Recommended: use `###` (H3) by convention, but the parser accepts any level
 
 #### Image reference
 
@@ -203,13 +204,13 @@ When the app writes back a slide that contained markdown elements it didn't pars
 3. **Parse header** — everything between the frontmatter (or start of file) and the first remaining `---` is the header. If no `---` separators exist, the header is limited to the first H1 only (see "No `---` separators" edge case). Extract and remove the first H1 as title. The remaining header content (all AST nodes after H1 removal) is preserved verbatim as an opaque blob — this ensures no content is lost (tables, lists, code blocks, etc. in the header are preserved just like slide-level unrecognized content). The H1 is NOT included in the blob to prevent duplication on write-back.
 4. **Split remainder on `---`** — divide into slide sections. Empty sections (containing only whitespace) are discarded — this applies to both leading empty sections (from the first `---` after the header) and trailing empty sections (from a closing `---` at end of file).
 5. **For each slide section**, extract:
-   - If a `### Unrecognized content` heading (exact text) is found, everything from that heading to the end of the slide section is stored as an opaque blob (raw markdown string, excluding the heading itself). No further extraction is performed on nodes within the blob. This heading is NEVER treated as a caption.
-   - First other `### Heading` → caption
+   - If a heading with exact text "Unrecognized content" is found (any level), everything from that heading to the end of the slide section is stored as an opaque blob (raw markdown string, excluding the heading itself). No further extraction is performed on nodes within the blob. This heading is NEVER treated as a caption.
+   - First other heading (any level, `#` through `######`) → caption. The heading level is preserved for round-trip.
    - **Image extraction** — only from top-level `Paragraph` nodes: if a paragraph contains one or more `Image` inline nodes, extract them as image references (ordered by appearance). A paragraph that contains ONLY image nodes (and whitespace) is consumed entirely (not included in notes). A paragraph that mixes images with other text: extract the images, keep the remaining text as notes. Images inside non-paragraph blocks (tables, lists, blockquotes, code blocks) are NOT extracted — they remain in the unrecognized content blob.
    - First contiguous `> blockquote` → source/credit. Additional blockquotes → unrecognized content.
    - Remaining `Paragraph` nodes (those not fully consumed by image extraction) → presenter notes (concatenated in order, preserving blank lines between them)
-   - All other block elements (HTML blocks, additional H3 headings not used as caption) → unrecognized content
-   - **Rich notes exception** — lists (ordered/unordered), tables, code blocks, and headings H4-H6 that appear among presenter notes are treated as part of the notes (not unrecognized content). This supports natural markdown note-taking with bullet points, comparison tables, code snippets, and sub-headings for organizing notes.
+   - **Rich notes exception** — lists (ordered/unordered), tables, code blocks that appear among presenter notes are treated as part of the notes (not unrecognized content). This supports natural markdown note-taking with bullet points, comparison tables, and code snippets.
+   - All other block elements (HTML blocks, additional headings not used as caption) → unrecognized content
 6. **Empty file or whitespace-only file** → valid, zero slides.
 7. **Image filename matching** — case-insensitive. `![](Photo.JPG)` matches `photo.jpg` on disk.
 
