@@ -67,7 +67,7 @@ struct SlideListPanel: View {
                 .clipShape(RoundedRectangle(cornerRadius: 6))
                 .accessibilityHidden(true)
 
-            Text(slide.section.images.first?.displayFilename ?? slide.displayName)
+            Text(slide.primaryFilename)
                 .font(.caption)
                 .lineLimit(2)
                 .multilineTextAlignment(.center)

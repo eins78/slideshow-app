@@ -128,12 +128,7 @@ struct SlideshowDocumentView: View {
         panel.begin { response in
             guard response == .OK, let url = panel.url else { return }
             Task {
-                // Create slideshow.md in the folder if it doesn't exist
-                let mdURL = url.appendingPathComponent(SlideshowDocument.defaultFilename)
-                if !FileManager.default.fileExists(atPath: mdURL.path(percentEncoded: false)) {
-                    let doc = SlideshowDocument(title: url.lastPathComponent)
-                    try? SlideshowWriter().write(doc, to: mdURL)
-                }
+                // openSlideshow auto-creates slideshow.md if missing
                 await openSlideshow(at: url)
             }
         }
@@ -251,11 +246,7 @@ struct SlideshowDocumentView: View {
             .deletingLastPathComponent().deletingLastPathComponent()
             .appending(path: "Examples/Paintings That Tell Secrets")
 
-        // Mirrors FolderScanner.imageExtensions — kept inline since that set is private
-        let imageExtensions: Set<String> = [
-            "jpg", "jpeg", "png", "heic", "heif", "tiff", "tif",
-            "raw", "dng", "cr2", "cr3", "nef", "arw", "orf", "rw2", "webp",
-        ]
+        let imageExtensions = FolderScanner.imageExtensions
         let contents = (try? fm.contentsOfDirectory(
             at: examplesDir,
             includingPropertiesForKeys: nil

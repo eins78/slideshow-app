@@ -59,8 +59,8 @@ public struct SlideshowWriter: Sendable {
     ) {
         var fields = document.frontmatter
         // Always include format key
-        if fields["format"] == nil {
-            fields["format"] = SlideshowDocument.formatURL
+        if fields[SlideshowDocument.formatKey] == nil {
+            fields[SlideshowDocument.formatKey] = SlideshowDocument.formatURL
         }
 
         output += "---\n"
@@ -109,7 +109,7 @@ public struct SlideshowWriter: Sendable {
 
         // Unrecognized content
         if let unrecognized = slide.unrecognizedContent {
-            elements.append("### Unrecognized content\n\n\(unrecognized)")
+            elements.append("### \(SlideshowDocument.unrecognizedHeading)\n\n\(unrecognized)")
         }
 
         // Join with single blank line between present elements

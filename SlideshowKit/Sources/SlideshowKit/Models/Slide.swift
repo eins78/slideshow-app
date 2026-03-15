@@ -25,6 +25,11 @@ public final class Slide: Identifiable {
 
     public var primaryImageURL: URL? { resolvedImageURLs.first }
 
+    /// Primary image filename without extension, for display in lists/grids.
+    public var primaryFilename: String {
+        section.images.first?.displayFilename ?? displayName
+    }
+
     /// Resolve image filenames to full URLs relative to a folder.
     /// Uses case-insensitive matching against actual files on disk.
     public func resolveImageURLs(

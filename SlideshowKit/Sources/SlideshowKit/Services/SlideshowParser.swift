@@ -83,11 +83,15 @@ public struct SlideshowParser: Sendable {
     /// Check if a file is a valid slideshow document.
     /// Returns true if: the file has `format:` matching our URL in frontmatter,
     /// OR the filename is "slideshow.md" (recognized by convention).
+    /// Fast path: only reads frontmatter, does not parse the full document.
     public func isValidSlideshowFile(url: URL) -> Bool {
         let filename = url.deletingPathExtension().lastPathComponent
-        if filename.lowercased() == "slideshow" { return true }
-        guard let doc = parse(url: url) else { return false }
-        return doc.frontmatter["format"] == SlideshowDocument.formatURL
+        if filename.lowercased() == SlideshowDocument.defaultStem { return true }
+        guard let content = try? String(contentsOf: url, encoding: .utf8) else { return false }
+        let lines = content.replacingOccurrences(of: "\r\n", with: "\n")
+            .components(separatedBy: "\n")
+        let (frontmatter, _) = extractFrontmatter(lines)
+        return frontmatter[SlideshowDocument.formatKey] == SlideshowDocument.formatURL
     }
 
     // MARK: - Frontmatter
@@ -205,7 +209,7 @@ public struct SlideshowParser: Sendable {
             }
 
             if let heading = node as? Heading {
-                if heading.plainText == "Unrecognized content" {
+                if heading.plainText == SlideshowDocument.unrecognizedHeading {
                     inUnrecognizedBlob = true
                     continue
                 }

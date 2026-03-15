@@ -13,7 +13,8 @@ public final class Slideshow {
     public var slides: [Slide] = []
     /// Currently selected slide ID.
     public var selectedSlideID: Slide.ID?
-    /// The parsed document (frontmatter, title, header, slides).
+    /// The parsed document (frontmatter, title, header content).
+    /// Note: `document.slides` is only synced on `save()` — read `slides` for live data.
     public var document: SlideshowDocument = SlideshowDocument()
 
     public init(documentURL: URL? = nil) {
@@ -28,7 +29,7 @@ public final class Slideshow {
         if let title = document.title, !title.isEmpty { return title }
         if let docURL = documentURL {
             let filename = docURL.deletingPathExtension().lastPathComponent
-            if filename.lowercased() != "slideshow" { return filename }
+            if filename.lowercased() != SlideshowDocument.defaultStem { return filename }
         }
         return folderURL?.lastPathComponent ?? "Untitled"
     }

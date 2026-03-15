@@ -5,8 +5,17 @@ public struct SlideshowDocument: Equatable, Sendable {
     /// Known format URL for identification.
     public static let formatURL = "https://example.com/slideshow/v1"
 
+    /// Frontmatter key used for format identification.
+    public static let formatKey = "format"
+
     /// Default filename when creating a new slideshow.
     public static let defaultFilename = "slideshow.md"
+
+    /// Default filename stem (without extension) for convention-based recognition.
+    public static let defaultStem = "slideshow"
+
+    /// Heading text used to delimit unrecognized content in slide sections.
+    public static let unrecognizedHeading = "Unrecognized content"
 
     /// YAML frontmatter fields. Always includes `format` key on write.
     public var frontmatter: [String: String]

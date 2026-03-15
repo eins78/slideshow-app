@@ -13,7 +13,7 @@ struct SlideRowView: View {
                 .frame(width: 30, alignment: .trailing)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(slide.section.images.first?.displayFilename ?? slide.displayName)
+                Text(slide.primaryFilename)
                     .font(.body)
                     .lineLimit(1)
 

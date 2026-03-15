@@ -10,19 +10,7 @@ public struct FolderScanner: Sendable {
     /// Scan a folder URL. Looks for `slideshow.md`, parses it, builds slides.
     /// If no `slideshow.md` found, falls back to one slide per image.
     public func scan(folderURL: URL) async throws -> ScanResult {
-        let fm = FileManager.default
-        let contents = try fm.contentsOfDirectory(
-            at: folderURL,
-            includingPropertiesForKeys: [.fileSizeKey, .contentTypeKey],
-            options: [.skipsHiddenFiles]
-        )
-
-        // Discover all images in the folder
-        let imageURLs = contents
-            .filter { isImageFile($0) }
-            .sorted { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }
-
-        let imageFilenames = imageURLs.map(\.lastPathComponent)
+        let (contents, imageURLs) = try discoverImages(in: folderURL)
 
         // Look for slideshow.md (case-insensitive)
         let slideshowMD = contents.first {
@@ -30,26 +18,34 @@ public struct FolderScanner: Sendable {
         }
 
         if let mdURL = slideshowMD {
-            return try buildFromDocument(
+            return buildFromDocument(
                 mdURL: mdURL,
                 folderURL: folderURL,
-                imageURLs: imageURLs,
-                imageFilenames: imageFilenames
+                imageURLs: imageURLs
             )
         }
 
         // No slideshow.md — fallback: one slide per image
-        return buildFromImages(
-            folderURL: folderURL,
-            imageURLs: imageURLs
-        )
+        return buildFromImages(folderURL: folderURL, imageURLs: imageURLs)
     }
 
     /// Scan from a specific `.md` file URL.
     public func scan(documentURL: URL) async throws -> ScanResult {
         let folderURL = documentURL.deletingLastPathComponent()
-        let fm = FileManager.default
-        let contents = try fm.contentsOfDirectory(
+        let (_, imageURLs) = try discoverImages(in: folderURL)
+
+        return buildFromDocument(
+            mdURL: documentURL,
+            folderURL: folderURL,
+            imageURLs: imageURLs
+        )
+    }
+
+    // MARK: - Image discovery
+
+    /// List directory contents and return sorted image URLs.
+    private func discoverImages(in folderURL: URL) throws -> (contents: [URL], imageURLs: [URL]) {
+        let contents = try FileManager.default.contentsOfDirectory(
             at: folderURL,
             includingPropertiesForKeys: [.fileSizeKey, .contentTypeKey],
             options: [.skipsHiddenFiles]
@@ -59,28 +55,22 @@ public struct FolderScanner: Sendable {
             .filter { isImageFile($0) }
             .sorted { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }
 
-        let imageFilenames = imageURLs.map(\.lastPathComponent)
-
-        return try buildFromDocument(
-            mdURL: documentURL,
-            folderURL: folderURL,
-            imageURLs: imageURLs,
-            imageFilenames: imageFilenames
-        )
+        return (contents, imageURLs)
     }
 
-    // MARK: - Private
+    // MARK: - Building slides
 
     private func buildFromDocument(
         mdURL: URL,
         folderURL: URL,
-        imageURLs: [URL],
-        imageFilenames: [String]
-    ) throws -> ScanResult {
+        imageURLs: [URL]
+    ) -> ScanResult {
         guard let doc = slideshowParser.parse(url: mdURL) else {
             // Unreadable .md — fall back to image-only
             return buildFromImages(folderURL: folderURL, imageURLs: imageURLs)
         }
+
+        let imageFilenames = imageURLs.map(\.lastPathComponent)
 
         // Build slides from document sections
         var slides: [Slide] = []
@@ -144,7 +134,8 @@ public struct FolderScanner: Sendable {
 
     // MARK: - Image detection
 
-    private static let imageExtensions: Set<String> = [
+    /// Supported image file extensions (fast-path check before UTType fallback).
+    public static let imageExtensions: Set<String> = [
         "jpg", "jpeg", "png", "heic", "heif", "tiff", "tif",
         "raw", "dng", "cr2", "cr3", "nef", "arw", "orf", "rw2", "webp"
     ]
