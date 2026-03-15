@@ -37,7 +37,9 @@ editing, and accessibility.
 | App icon in asset catalog | Missing | Standalone PNG, not in `Assets.xcassets` |
 | Version / build number | Missing | No `MARKETING_VERSION` or `CURRENT_PROJECT_VERSION` |
 | Info.plist metadata | Incomplete | Only has UTType export; missing display name, copyright |
-| Privacy manifest | Missing | No `PrivacyInfo.xcprivacy` — required for App Store |
+| Privacy manifest | Missing | No `PrivacyInfo.xcprivacy` — required for ALL uploads (ITMS-91053) |
+| Export compliance | Missing | Need `ITSAppUsesNonExemptEncryption = NO` in Info.plist |
+| Bundle ID registration | Missing | Must register `is.kte.slideshow` in Apple Developer portal |
 | Code signing team | Missing | No `DEVELOPMENT_TEAM` in `project.yml` |
 | iOS target in project.yml | Missing | Tracer code exists in git history, not yet on main |
 
@@ -47,16 +49,27 @@ Single branch, both platforms. The goal is proving the pipeline, not polishing U
 
 #### Step 1: Shared infra (both platforms)
 
-1. **App icon** — Add `AppIcon-final.png` to `Assets.xcassets/AppIcon.appiconset`
-   with proper `Contents.json` (single 1024x1024 PNG, Xcode generates all sizes)
-2. **Version metadata** — Set `MARKETING_VERSION: "0.1.0"` and
+1. **Bundle ID registration** — Register `is.kte.slideshow` in
+   [Certificates, Identifiers & Profiles](https://developer.apple.com/account/resources/identifiers/list)
+   on the Apple Developer portal. Must exist before creating the app record.
+2. **App icon** — Add `AppIcon-final.png` to `Assets.xcassets/AppIcon.appiconset`
+   with proper `Contents.json`. Single 1024x1024 works for iOS; for macOS 26 with
+   squircle unification, test whether single-size works or if all sizes are still needed.
+3. **Version metadata** — Set `MARKETING_VERSION: "0.1.0"` and
    `CURRENT_PROJECT_VERSION: "1"` in `project.yml`, add `CFBundleShortVersionString`
    and `CFBundleVersion` to Info.plist
-3. **Info.plist** — Add `CFBundleDisplayName`, `NSHumanReadableCopyright`
-4. **Privacy manifest** — Create `PrivacyInfo.xcprivacy` declaring:
-   - `NSPrivacyAccessedAPICategoryFileTimestamp` (file modification dates for ordering)
-   - No tracking, no collected data types for this MVP
-5. **Code signing** — Add `DEVELOPMENT_TEAM` to `project.yml` (team ID: `X8VJSFQ9QC`)
+4. **Info.plist** — Add:
+   - `CFBundleDisplayName` — "Slideshow"
+   - `NSHumanReadableCopyright` — e.g. "Copyright © 2026 kte.is"
+   - `ITSAppUsesNonExemptEncryption` = `NO` (no custom encryption, skip export
+     compliance dialog on every upload)
+5. **Privacy manifest** — Create `PrivacyInfo.xcprivacy` declaring:
+   - `NSPrivacyAccessedAPICategoryFileTimestamp` reason `3B52.1` (user-granted file access)
+   - `NSPrivacyAccessedAPICategoryUserDefaults` reason `CA92.1` (app uses `@AppStorage`)
+   - `NSPrivacyTracking` = `false`, no collected data types
+   - Required for ALL uploads including internal TestFlight (ITMS-91053 rejection otherwise)
+6. **Code signing** — Add `DEVELOPMENT_TEAM` to `project.yml` (team ID: `X8VJSFQ9QC`).
+   Automatic signing handles provisioning profiles for TestFlight.
 
 #### Step 2: Restore iOS tracer-bullet target
 
@@ -69,14 +82,44 @@ Single branch, both platforms. The goal is proving the pipeline, not polishing U
 2. **Verify build** — Both targets must compile cleanly
 3. **Share icon + metadata** — iOS target uses same `Assets.xcassets`
 
-#### Step 3: Archive & upload
+#### Step 3: App Store Connect setup
 
-1. **macOS archive** — `xcodebuild archive -scheme Slideshow -destination 'platform=macOS'`
-2. **iOS archive** — `xcodebuild archive -scheme SlideshowMobile -destination 'generic/platform=iOS'`
-3. **Validate** both archives with `xcrun altool --validate-app` or Xcode Organizer
-4. **Upload** to App Store Connect
-5. **App Store Connect** — Create app record (universal), configure internal TestFlight group
-6. **Verify install** — Install on Mac and iPhone from TestFlight
+1. **Create app record** — App Store Connect > Apps > New App:
+   - Platforms: iOS + macOS (or add macOS via "Add Platform" after)
+   - Name: "Slideshow"
+   - Bundle ID: `is.kte.slideshow` (from dropdown, must be pre-registered)
+   - SKU: `slideshow` (permanent, internal-only identifier)
+   - Primary language: English (U.S.)
+2. **Configure TestFlight** — Add internal tester group
+
+#### Step 4: Archive & upload
+
+1. **macOS archive:**
+   ```bash
+   xcodebuild archive -scheme Slideshow \
+     -destination 'generic/platform=macOS' \
+     -archivePath ./build/Slideshow-macOS.xcarchive
+   ```
+2. **iOS archive:**
+   ```bash
+   xcodebuild archive -scheme SlideshowMobile \
+     -destination 'generic/platform=iOS' \
+     -archivePath ./build/Slideshow-iOS.xcarchive
+   ```
+3. **Upload** both via `xcodebuild -exportArchive` with `ExportOptions.plist`:
+   ```xml
+   <dict>
+     <key>method</key>
+     <string>app-store-connect</string>
+     <key>destination</key>
+     <string>upload</string>
+     <key>teamID</key>
+     <string>X8VJSFQ9QC</string>
+   </dict>
+   ```
+   Note: `app-store` method name is deprecated — use `app-store-connect`.
+4. **Verify install** — Install on Mac and iPhone from TestFlight
+   - Internal builds available immediately (no App Review), expires after 90 days
 
 ### Decisions
 
@@ -105,4 +148,8 @@ Single branch, both platforms. The goal is proving the pipeline, not polishing U
 - iOS tracer commits: `f2d6ea0`, `46e1a23`, `e707194` — cherry-pick or restore from history
 - `docs/app-icon.md` has detailed research on Icon Composer format (for future Liquid Glass pass)
 - SlideshowKit's `Package.swift` already declares `.iOS(.v26)` — no package changes needed
-- Steps 3 (archive & upload) may require manual Xcode interaction — not fully automatable via CLI
+- Archive & upload can be done via CLI (`xcodebuild -exportArchive`) or Xcode Organizer
+- Authentication for upload requires App Store Connect API key or Apple ID in Xcode keychain
+- Once both platforms are approved for App Store (not TestFlight), universal purchase is permanent
+- Privacy manifest required-reason API categories: file timestamps, user defaults, system boot time,
+  disk space, active keyboards. CGImageSource/ImageIO is NOT in the list.
