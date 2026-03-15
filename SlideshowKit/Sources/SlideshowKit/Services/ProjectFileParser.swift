@@ -8,7 +8,9 @@ public struct ProjectFileParser: Sendable {
     /// Parse a project file's content string into structured data.
     /// Malformed YAML or empty content returns a default ProjectFile.
     public func parse(_ content: String) -> ProjectFile {
-        let trimmed = content.trimmingCharacters(in: .whitespacesAndNewlines)
+        // Normalize CRLF → LF for cross-platform consistency (same as SidecarParser)
+        let normalized = content.replacingOccurrences(of: "\r\n", with: "\n")
+        let trimmed = normalized.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else {
             return ProjectFile()
         }
