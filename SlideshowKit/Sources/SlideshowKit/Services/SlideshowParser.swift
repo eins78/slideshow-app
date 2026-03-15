@@ -305,8 +305,10 @@ public struct SlideshowParser: Sendable {
 
         if hasNonImageContent {
             // Mixed paragraph — extract images, return remaining text
-            let nonImageChildren = paragraph.children.filter { !($0 is Image) }
-            let rebuilt = Paragraph(nonImageChildren.map { $0 as! any InlineMarkup })
+            let nonImageChildren = paragraph.children
+                .filter { !($0 is Image) }
+                .compactMap { $0 as? any InlineMarkup }
+            let rebuilt = Paragraph(nonImageChildren)
             let text = rebuilt.format().trimmingCharacters(in: .whitespacesAndNewlines)
             return (images, text.isEmpty ? nil : text)
         }
