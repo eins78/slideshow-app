@@ -7,22 +7,30 @@ import Observation
 @MainActor
 @Observable
 public final class Slideshow {
-    /// The project folder URL.
-    public var folderURL: URL?
+    /// URL of the `slideshow.md` file.
+    public var documentURL: URL?
     /// Ordered list of slides.
     public var slides: [Slide] = []
     /// Currently selected slide ID.
     public var selectedSlideID: Slide.ID?
-    /// Optional project file parsed from `slideshow.yml` in the folder.
-    public var projectFile: ProjectFile?
+    /// The parsed document (frontmatter, title, header, slides).
+    public var document: SlideshowDocument = SlideshowDocument()
 
-    public init(folderURL: URL? = nil) {
-        self.folderURL = folderURL
+    public init(documentURL: URL? = nil) {
+        self.documentURL = documentURL
     }
 
-    /// Display name: project file title, then folder name, then "Untitled".
+    /// Folder containing the slideshow.md and images.
+    public var folderURL: URL? { documentURL?.deletingLastPathComponent() }
+
+    /// Display name: document title, then filename (if not "slideshow"), then folder name.
     public var name: String {
-        projectFile?.title ?? folderURL?.lastPathComponent ?? "Untitled"
+        if let title = document.title, !title.isEmpty { return title }
+        if let docURL = documentURL {
+            let filename = docURL.deletingPathExtension().lastPathComponent
+            if filename.lowercased() != "slideshow" { return filename }
+        }
+        return folderURL?.lastPathComponent ?? "Untitled"
     }
 
     /// Currently selected slide.
@@ -51,31 +59,25 @@ public final class Slideshow {
         return true
     }
 
-    // MARK: - Slide operations
-    // Design: file I/O lives on the model, not in views. Synchronous on @MainActor
-    // by design — operations are fast (rename/copy single files, not batch processing).
-    // Async would add complexity without measurable benefit for typical slideshow sizes.
-    // See: https://developer.apple.com/documentation/swiftui/model-data
+    // MARK: - Document persistence
 
-    /// Create an empty sidecar file for a slide.
-    public func createSidecar(for slide: Slide) throws {
-        let writer = SidecarWriter()
-        let data = SidecarData(notes: "")
-        try writer.write(data, to: slide.sidecarURL)
-        slide.sidecar = data
+    /// Save the current slideshow to disk (atomic write).
+    /// Syncs slide sections back to the document before writing.
+    public func save() throws {
+        guard let url = documentURL else { return }
+        document.slides = slides.map(\.section)
+        try SlideshowWriter().write(document, to: url)
     }
 
-    /// Remove a slide from the slideshow and delete its files from disk.
-    /// Uses try? intentionally — orphaned files are acceptable vs. blocking the user.
+    // MARK: - Slide operations
+
+    /// Remove a slide from the slideshow. Does NOT delete image files.
+    /// The slide is removed from the presentation; the image stays in the folder.
     public func removeSlide(_ slide: Slide) {
         let wasSelected = slide.id == selectedSlideID
         let removedIndex = slides.firstIndex { $0.id == slide.id }
 
         slides.removeAll { $0.id == slide.id }
-        try? FileManager.default.removeItem(at: slide.fileURL)
-        if FileManager.default.fileExists(atPath: slide.sidecarURL.path(percentEncoded: false)) {
-            try? FileManager.default.removeItem(at: slide.sidecarURL)
-        }
 
         if wasSelected {
             if let idx = removedIndex {
@@ -85,76 +87,70 @@ public final class Slideshow {
                 selectedSlideID = nil
             }
         }
+
+        try? save()
     }
 
     /// Add images from external URLs into the slideshow folder.
-    /// Incremental — no full re-scan, preserves loaded EXIF and selection.
+    /// Copies files to the folder, creates slide entries, and saves.
     public func addImages(from urls: [URL]) {
         guard let folderURL else { return }
-        let reorderer = FileReorderer()
-        let parser = SidecarParser()
         let fm = FileManager.default
-        var existingNames = Set(slides.map { $0.fileURL.lastPathComponent })
+        var existingNames = Set(
+            (try? fm.contentsOfDirectory(at: folderURL, includingPropertiesForKeys: nil))?
+                .map(\.lastPathComponent) ?? []
+        )
 
         for url in urls {
-            // startAccessingSecurityScopedResource returns false for non-scoped URLs
-            // (e.g., some file-importer URLs). The URL may still be accessible via
-            // sandbox entitlements — only call stop if start succeeded.
             let didStartAccessing = url.startAccessingSecurityScopedResource()
             defer { if didStartAccessing { url.stopAccessingSecurityScopedResource() } }
 
-            let name = reorderer.deconflictedName(url.lastPathComponent, existing: existingNames)
+            let name = deconflictedName(url.lastPathComponent, existing: existingNames)
             let dest = folderURL.appending(path: name)
             guard (try? fm.copyItem(at: url, to: dest)) != nil else { continue }
 
-            let slide = Slide(fileURL: dest)
+            let section = SlideSection(
+                images: [SlideImage(filename: name)]
+            )
+            let slide = Slide(section: section)
+            slide.resolveImageURLs(relativeTo: folderURL)
+
             if let rv = try? dest.resourceValues(forKeys: [.fileSizeKey]),
                let size = rv.fileSize {
                 slide.fileSize = Int64(size)
             }
-            let sidecarURL = dest.appendingPathExtension("md")
-            if fm.fileExists(atPath: sidecarURL.path(percentEncoded: false)) {
-                slide.sidecar = parser.parse(url: sidecarURL)
-            }
+
             slides.append(slide)
             existingNames.insert(name)
         }
+
+        try? save()
     }
 
-    /// Write a slide's sidecar data to disk.
-    public func saveSidecar(for slide: Slide) {
-        guard let sidecar = slide.sidecar else { return }
-        let writer = SidecarWriter()
-        try? writer.write(sidecar, to: slide.sidecarURL)
-    }
-
-    /// Move a slide up or down by one position.
+    /// Move a slide up or down by one position. Saves automatically.
     public func moveSlide(_ slide: Slide, direction: Int) {
         guard let idx = slides.firstIndex(where: { $0.id == slide.id }) else { return }
         let newIdx = idx + direction
         guard newIdx >= 0, newIdx < slides.count else { return }
         slides.swapAt(idx, newIdx)
+        try? save()
     }
 
-    /// Persist current slide order to disk by renaming files with `\d{3}--` prefixes.
-    /// Uses FileReorderer's two-pass rename to avoid collisions.
-    public func persistReorder() {
-        guard let folderURL else { return }
-        let reorderer = FileReorderer()
-        let filenames = slides.map { $0.fileURL.lastPathComponent }
-        guard let renames = try? reorderer.reorder(in: folderURL, orderedFilenames: filenames) else { return }
-        for (oldURL, newURL) in renames {
-            if let slide = slides.first(where: { $0.fileURL == oldURL }) {
-                slide.fileURL = newURL
-            }
+    // MARK: - Helpers
+
+    /// Generate a unique filename by appending " 2", " 3", etc. if needed.
+    private func deconflictedName(
+        _ filename: String,
+        existing: Set<String>
+    ) -> String {
+        guard existing.contains(filename) else { return filename }
+        let name = (filename as NSString).deletingPathExtension
+        let ext = (filename as NSString).pathExtension
+        var counter = 2
+        while true {
+            let candidate = ext.isEmpty ? "\(name) \(counter)" : "\(name) \(counter).\(ext)"
+            if !existing.contains(candidate) { return candidate }
+            counter += 1
         }
-    }
-
-    /// Write the project file to the folder. Creates slideshow.yml if missing.
-    public func saveProjectFile() throws {
-        guard let folderURL else { return }
-        let writer = ProjectFileWriter()
-        let file = projectFile ?? ProjectFile()
-        try writer.write(file, to: folderURL.appending(path: ProjectFile.filename))
     }
 }
