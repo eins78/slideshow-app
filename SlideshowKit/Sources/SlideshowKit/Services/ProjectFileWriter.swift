@@ -9,8 +9,11 @@ public struct ProjectFileWriter: Sendable {
     public func write(_ projectFile: ProjectFile, to url: URL) throws {
         // Start from rawFields (preserves unknown keys), then overwrite
         // known fields — named properties take precedence over raw dict values.
-        var fields = projectFile.rawFields
-        fields["version"] = "\(projectFile.version)"
+        // Note: rawFields is [String: String] — lossy for complex YAML types.
+        // This is acceptable for v1 (flat key-value). Future layouts (arrays/dicts)
+        // will require rawFields to use a richer type (e.g. Yams.Node).
+        var fields: [String: Any] = projectFile.rawFields
+        fields["version"] = projectFile.version // Int, not String — avoids YAML quoting
 
         if let title = projectFile.title {
             fields["title"] = title

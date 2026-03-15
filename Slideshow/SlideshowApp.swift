@@ -127,7 +127,13 @@ struct SlideshowDocumentView: View {
         panel.message = "Choose or create a folder for your slideshow"
         panel.begin { response in
             guard response == .OK, let url = panel.url else { return }
-            Task { await openSlideshow(at: url) }
+            Task {
+                await openSlideshow(at: url)
+                if slideshow.projectFile == nil {
+                    slideshow.projectFile = ProjectFile()
+                    try? slideshow.saveProjectFile()
+                }
+            }
         }
     }
 
