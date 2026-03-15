@@ -8,7 +8,7 @@ format: https://example.com/slideshow/v1
 
 ### The Blue Marble
 
-![](001--blue-marble.jpg)
+![](blue-marble.jpg)
 
 > NASA / Apollo 17 crew, 1972
 > Public Domain
@@ -25,7 +25,7 @@ and floating in nothing.
 
 ### Pillars of Creation
 
-![](002--pillars-of-creation.jpg)
+![](pillars-of-creation.jpg)
 
 > NASA / ESA / Hubble Heritage Team
 > Public Domain
@@ -42,7 +42,7 @@ could drive a car at highway speed, it would take you about
 
 ### The Greatest Saturn Portrait
 
-![](003--saturn.jpg)
+![](saturn.jpg)
 
 > NASA / JPL-Caltech / Space Science Institute / Cassini
 > Public Domain
@@ -59,7 +59,7 @@ wide but really thin, like a DVD that's 100,000 kilometers across.
 
 ### Cosmic Cliffs
 
-![](004--cosmic-cliffs.jpg)
+![](cosmic-cliffs.jpg)
 
 > NASA / ESA / CSA / STScI / James Webb Space Telescope
 > Public Domain
@@ -76,7 +76,7 @@ with infrared light, so it found stars that nobody had ever seen before.
 
 ### Crab Nebula
 
-![](005--crab-nebula.jpg)
+![](crab-nebula.jpg)
 
 > NASA / ESA / Hubble Space Telescope
 > Public Domain
@@ -93,7 +93,7 @@ second — it's the dead core of the star that exploded.
 
 ### Andromeda Galaxy
 
-![](006--andromeda.jpg)
+![](andromeda.jpg)
 
 > NASA / ESA / Hubble Space Telescope
 > Public Domain
@@ -110,7 +110,7 @@ on a dark night — it's 2.5 million light-years away.
 
 ### Hubble Deep Field
 
-![](007--hubble-deep-field.jpg)
+![](hubble-deep-field.jpg)
 
 > NASA / STScI / Hubble Space Telescope, 1996
 > Public Domain
@@ -128,7 +128,7 @@ how big the universe is.
 
 ### Sunset on Mars
 
-![](008--mars-sunset.jpg)
+![](mars-sunset.jpg)
 
 > NASA / JPL-Caltech / MSSS / Curiosity Rover, 2015
 > Public Domain
@@ -146,7 +146,7 @@ because Mars is farther away from it than we are.
 
 ### Ingenuity Helicopter on Mars
 
-![](009--ingenuity.jpg)
+![](ingenuity.jpg)
 
 > NASA / JPL-Caltech / Perseverance Rover, 2023
 > Public Domain
@@ -163,7 +163,7 @@ places the rover couldn't reach and helped plan driving routes.
 
 ### Pluto Close-Up
 
-![](010--pluto.jpg)
+![](pluto.jpg)
 
 > NASA / Johns Hopkins APL / SwRI / New Horizons, 2015
 > Public Domain

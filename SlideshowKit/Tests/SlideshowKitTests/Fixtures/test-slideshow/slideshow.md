@@ -8,13 +8,13 @@ format: https://example.com/slideshow/v1
 
 ### Intro
 
-![](001--intro.jpg)
+![](intro.jpg)
 
 ---
 
 ### Golden hour
 
-![A beautiful sunset](002--sunset.jpg)
+![A beautiful sunset](sunset.jpg)
 
 > © MFA 2024
 
@@ -22,6 +22,6 @@ Talk about the light.
 
 ---
 
-![](003--portrait.jpg)
+![](portrait.jpg)
 
 ---

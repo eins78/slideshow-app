@@ -8,7 +8,7 @@ struct EXIFReaderTests {
 
     func fixtureImageURL() throws -> URL {
         try #require(Bundle.module.resourceURL)
-            .appending(path: "Fixtures/test-slideshow/001--intro.jpg")
+            .appending(path: "Fixtures/test-slideshow/intro.jpg")
     }
 
     @Test("Returns EXIFData with nil fields for minimal JPEG without EXIF")

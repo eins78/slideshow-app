@@ -8,7 +8,7 @@ format: https://example.com/slideshow/v1
 
 ### The Night Watch
 
-![](001--night-watch.jpg)
+![](night-watch.jpg)
 
 > Rembrandt van Rijn, 1642
 > Rijksmuseum, Amsterdam — CC0 Public Domain
@@ -27,7 +27,7 @@ The painting is so important it has its own room at the Rijksmuseum.
 
 ### The Love Letter
 
-![](002--love-letter.jpg)
+![](love-letter.jpg)
 
 > Johannes Vermeer, c. 1669
 > Rijksmuseum, Amsterdam — CC0 Public Domain
@@ -45,7 +45,7 @@ Vermeer hid the answer to the letter in the background.
 
 ### The Starry Night
 
-![](003--starry-night.jpg)
+![](starry-night.jpg)
 
 > Vincent van Gogh, 1889
 > MoMA, New York — Public Domain
