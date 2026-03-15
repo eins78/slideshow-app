@@ -11,6 +11,7 @@ struct ContentView: View {
     @State private var saveTrigger = false
     @State private var pendingViewMode: ViewMode?
     @State private var hostWindow: NSWindow?
+    @State private var previewWidth: CGFloat = 240
 
     enum ViewMode: String, CaseIterable {
         case list, grid, text
@@ -112,19 +113,27 @@ struct ContentView: View {
                     .buttonStyle(.borderedProminent)
             }
         } else {
-            HSplitView {
-                PreviewPanel(slideshow: slideshow)
-                    .frame(minWidth: 200, idealWidth: 240)
+            GeometryReader { geometry in
+                HStack(spacing: 0) {
+                    PreviewPanel(slideshow: slideshow)
+                        .frame(width: previewWidth)
 
-                SlideListPanel(
-                    slideshow: slideshow,
-                    viewMode: viewMode,
-                    searchText: searchText,
-                    isDirty: $isTextDirty,
-                    saveTrigger: $saveTrigger,
-                    hostWindow: hostWindow
-                )
-                .frame(minWidth: 300)
+                    HorizontalDivider(
+                        leftWidth: $previewWidth,
+                        minLeft: 200,
+                        maxLeft: geometry.size.width - 308
+                    )
+
+                    SlideListPanel(
+                        slideshow: slideshow,
+                        viewMode: viewMode,
+                        searchText: searchText,
+                        isDirty: $isTextDirty,
+                        saveTrigger: $saveTrigger,
+                        hostWindow: hostWindow
+                    )
+                    .frame(minWidth: 300)
+                }
             }
         }
     }

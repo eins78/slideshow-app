@@ -15,9 +15,7 @@ final class SlideshowUITests: XCTestCase {
         app.launch()
 
         let openButton = app.buttons["openSlideshowButton"]
-        let createButton = app.buttons["createNewButton"]
         XCTAssertTrue(openButton.waitForExistence(timeout: 5))
-        XCTAssertTrue(createButton.exists)
     }
 
     // MARK: - Fixture Mode

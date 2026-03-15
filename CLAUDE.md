@@ -97,10 +97,16 @@ Security-scoped bookmarks via `BookmarkManager` (`@Observable` class) for reopen
 
 ## Development Rules
 
-### Definition of Done
+> **START HERE: `.claude/rules/agent-workflow.md` is the authoritative workflow reference.** It defines mandatory swift-agents dispatch, STOP checkpoints, commit protocol, and review loop enforcement. Read it before writing any code.
 
-A task is NOT done until ALL of these are satisfied:
+### Definition of Done — BLOCKING GATE
 
+**This is not a checklist to glance at. It is a gate. Code that fails ANY item is not done, not committable, and not pushable. See `.claude/rules/agent-workflow.md` for enforcement details.**
+
+**Before writing code:**
+0. **Swift-agents:** dispatch `swift-lead` before writing ANY Swift code — it routes to the right specialists. No exceptions, no "too simple" bypass. This is mandatory. (See `.claude/rules/agent-workflow.md` for dispatch syntax, exclusions, and the two-phase review model.)
+
+**Before committing:**
 1. `cd SlideshowKit && swift test` — zero failures
 2. `xcodebuild -scheme Slideshow -destination 'platform=macOS' build` — zero warnings
 3. No `!` force unwraps — use `guard let`, `if let`, or `??`
@@ -110,8 +116,10 @@ A task is NOT done until ALL of these are satisfied:
 7. Round-trip: parse → write → parse must preserve all data (frontmatter, slides, unrecognized content)
 8. Tests written before or alongside implementation, never after
 9. One logical change per commit; imperative mood, lowercase, no trailing period
-10. **Simplify:** after committing, run `/simplify` to review changed code for reuse, quality, and efficiency — fix any issues found before proceeding
-11. **Gemini review loop:** after simplify, run `/ai-review` for Gemini review. If issues are found: fix them, commit the fixes, and run `/ai-review` again. Repeat until the review comes back clean (max 10 iterations — if still failing after 10, stop and ask the human for help). NEVER skip reviews. Work in PR-sized batches — commit when a task is logically complete, then enter the review loop
+
+**After committing (NEVER skip — most commonly skipped, most important):**
+10. **Simplify:** run `/simplify` to review changed code for reuse, quality, and efficiency — fix any issues found before proceeding
+11. **Gemini review loop:** run `/ai-review` for Gemini review. If issues are found: fix them, commit the fixes, and run `/ai-review` again. Repeat until the review comes back clean (max 10 iterations — if still failing after 10, stop and ask the human for help). NEVER skip reviews. Work in PR-sized batches — commit when a task is logically complete, then enter the review loop
 
 ### Git History Rules
 
@@ -139,6 +147,7 @@ When a review repeatedly flags a deliberate design choice that we won't change, 
 ### Detailed Rules
 
 Domain-specific rules in `.claude/rules/`:
+- **`agent-workflow.md` — MANDATORY: swift-agents dispatch, DoD enforcement, stop checkpoints**
 - `swift-concurrency.md` — Swift 6 strict concurrency patterns
 - `swiftui-patterns.md` — SwiftUI state management and view rules
 - `testing.md` — Swift Testing framework conventions

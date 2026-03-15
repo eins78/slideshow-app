@@ -1,26 +1,26 @@
 import SwiftUI
 
-/// A horizontal divider that can be dragged to resize panels above/below.
-struct DraggableDivider: View {
-    @Binding var topHeight: CGFloat
-    let minTopHeight: CGFloat
-    let maxTopHeight: CGFloat
-    @State private var dragStartHeight: CGFloat?
+/// A vertical-line divider that can be dragged to resize panels left/right.
+struct HorizontalDivider: View {
+    @Binding var leftWidth: CGFloat
+    let minLeft: CGFloat
+    let maxLeft: CGFloat
+    @State private var dragStartWidth: CGFloat?
     @State private var isHovering = false
 
     var body: some View {
         Rectangle()
             .fill(Color(nsColor: .separatorColor))
-            .frame(height: 1)
-            .padding(.vertical, 3)
-            .frame(height: 8)
+            .frame(width: 1)
+            .padding(.horizontal, 3)
+            .frame(width: 8)
             .contentShape(Rectangle())
             .accessibilityHidden(true)
             .onHover { hovering in
                 guard hovering != isHovering else { return }
                 isHovering = hovering
                 if hovering {
-                    NSCursor.resizeUpDown.push()
+                    NSCursor.resizeLeftRight.push()
                 } else {
                     NSCursor.pop()
                 }
@@ -34,13 +34,13 @@ struct DraggableDivider: View {
             .gesture(
                 DragGesture(coordinateSpace: .global)
                     .onChanged { value in
-                        if dragStartHeight == nil { dragStartHeight = topHeight }
-                        guard let startHeight = dragStartHeight else { return }
-                        let newHeight = startHeight + value.translation.height
-                        topHeight = min(max(newHeight, minTopHeight), maxTopHeight)
+                        if dragStartWidth == nil { dragStartWidth = leftWidth }
+                        guard let startWidth = dragStartWidth else { return }
+                        let newWidth = startWidth + value.translation.width
+                        leftWidth = min(max(newWidth, minLeft), maxLeft)
                     }
                     .onEnded { _ in
-                        dragStartHeight = nil
+                        dragStartWidth = nil
                     }
             )
     }

@@ -17,6 +17,11 @@ public final class Slideshow {
     /// Note: `document.slides` is only synced on `save()` — read `slides` for live data.
     public var document: SlideshowDocument = SlideshowDocument()
 
+    /// Live preview state for text editing mode.
+    /// When non-nil, PreviewPanel shows this instead of selectedSlide.
+    /// Not persisted. Set by the text editor, cleared when leaving text mode.
+    public var livePreview: LivePreview?
+
     /// File presenter for detecting external changes to `slideshow.md`.
     private var filePresenter: DocumentFilePresenter?
 

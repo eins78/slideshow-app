@@ -8,6 +8,27 @@ struct PreviewPanel: View {
     @State private var previewImage: NSImage?
     @State private var imageLoaded = false
 
+    /// The image URL to load — live preview takes priority over selected slide.
+    private var imageURLToLoad: URL? {
+        if let live = slideshow.livePreview, live.slideSection != nil {
+            return live.imageURL
+        }
+        return slideshow.selectedSlide?.primaryImageURL
+    }
+
+    /// The slide section to display (caption, notes, source).
+    private var displaySection: SlideSection? {
+        if let live = slideshow.livePreview, let section = live.slideSection {
+            return section
+        }
+        return slideshow.selectedSlide?.section
+    }
+
+    /// Display name for accessibility.
+    private var displayName: String {
+        displaySection?.displayName ?? "No slide selected"
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             imagePreview
@@ -22,23 +43,22 @@ struct PreviewPanel: View {
             notesPreview
         }
         .background(.black)
-        .task(id: slideshow.selectedSlideID) {
+        .task(id: imageURLToLoad) {
             await loadImage()
         }
     }
 
     @ViewBuilder
     private var imagePreview: some View {
-        if let slide = slideshow.selectedSlide {
+        if displaySection != nil {
             VStack(spacing: 4) {
                 if let image = previewImage {
                     Image(nsImage: image)
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .accessibilityLabel(slide.displayName)
+                        .accessibilityLabel(displayName)
                 } else if imageLoaded {
-                    // Load completed but returned nil — show placeholder
                     Image(systemName: "photo")
                         .font(.system(size: 48))
                         .foregroundStyle(.secondary)
@@ -48,7 +68,7 @@ struct PreviewPanel: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
 
-                if let caption = slide.section.caption {
+                if let caption = displaySection?.caption {
                     Text(caption)
                         .font(.title3)
                         .foregroundStyle(.white)
@@ -64,11 +84,7 @@ struct PreviewPanel: View {
     private func loadImage() async {
         imageLoaded = false
         previewImage = nil
-        guard let slide = slideshow.selectedSlide else {
-            imageLoaded = true
-            return
-        }
-        guard let url = slide.primaryImageURL else {
+        guard let url = imageURLToLoad else {
             imageLoaded = true
             return
         }
@@ -81,12 +97,12 @@ struct PreviewPanel: View {
     private var notesPreview: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 8) {
-                if let slide = slideshow.selectedSlide {
-                    if slide.section.source != nil {
-                        SourceTextView(section: slide.section)
+                if let section = displaySection {
+                    if section.source != nil {
+                        SourceTextView(section: section)
                     }
-                    if !slide.section.notes.isEmpty {
-                        MarkdownRenderedView(markdown: slide.section.notes)
+                    if !section.notes.isEmpty {
+                        MarkdownRenderedView(markdown: section.notes)
                     }
                 }
             }

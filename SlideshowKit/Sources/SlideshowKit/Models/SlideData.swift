@@ -57,3 +57,21 @@ public struct SlideSection: Equatable, Sendable {
         return lines.count > 1 ? Array(lines.dropFirst()) : []
     }
 }
+
+/// Transient state for live preview during text editing.
+/// Not persisted — set by the text editor, cleared when leaving text mode.
+public struct LivePreview: Equatable, Sendable {
+    public var slideSection: SlideSection?
+    public var slideIndex: Int?
+    public var imageURL: URL?
+
+    public init(
+        slideSection: SlideSection? = nil,
+        slideIndex: Int? = nil,
+        imageURL: URL? = nil
+    ) {
+        self.slideSection = slideSection
+        self.slideIndex = slideIndex
+        self.imageURL = imageURL
+    }
+}
