@@ -101,4 +101,9 @@ public actor ImageCache {
     public func preloadThumbnails(for urls: [URL]) {
         for url in urls { _ = thumbnail(for: url) }
     }
+
+    /// Preload full-resolution images for upcoming slides (call from presentation mode).
+    public func preloadFullImages(for urls: [URL]) {
+        for url in urls { _ = fullImage(for: url) }
+    }
 }
