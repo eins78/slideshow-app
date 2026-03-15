@@ -198,11 +198,11 @@ When the app writes back a slide that contained markdown elements it didn't pars
 #### Reading
 
 1. **Normalize** — CRLF → LF.
-2. **Detect frontmatter** — if the file starts with `---` on line 1, parse YAML until the closing `---`. These two `---` delimiters are consumed and are NOT treated as slide separators. Unknown keys preserved. Malformed YAML → frontmatter ignored, treated as part of the header text. Missing frontmatter → valid file, just no project metadata.
+2. **Detect frontmatter** — if the file starts with `---` on line 1, attempt to parse YAML until the closing `---`. If the YAML is valid and contains at least one key, consume both `---` delimiters (they are NOT slide separators). If the YAML is malformed or empty (e.g., the opening `---` was actually a slide separator), do NOT consume it — rewind and treat the initial `---` as the first slide separator. Missing frontmatter → valid file, just no project metadata.
 3. **Parse header** — everything between the frontmatter (or start of file) and the first remaining `---` is the header. Extract the first H1 as title. Remaining paragraphs are project-level notes. Images and blockquotes in the header are treated as project-level content (not slide elements).
 4. **Split remainder on `---`** — divide into slide sections. A trailing `---` followed by only whitespace does not create an empty slide.
 5. **For each slide section**, extract:
-   - The heading `### Unrecognized content` (exact text) → stored as opaque blob. This heading is NEVER treated as a caption, even if it is the first H3.
+   - If a `### Unrecognized content` heading (exact text) is found, everything from that heading to the end of the slide section is stored as an opaque blob (raw markdown string, excluding the heading itself). No further extraction is performed on nodes within the blob. This heading is NEVER treated as a caption.
    - First other `### Heading` → caption
    - All `![alt](file)` → image references (ordered by appearance)
    - First contiguous `> blockquote` → source/credit. Additional blockquotes → unrecognized content.
@@ -215,7 +215,8 @@ When the app writes back a slide that contained markdown elements it didn't pars
 
 1. **Frontmatter** — write if any machine fields exist. Unknown keys preserved. `Yams.dump(sortedKeys: true)`.
 2. **Title** — write as `# Title` if present.
-3. **For each slide**, write in order:
+3. **Project-level notes** — write back project-level content (paragraphs, images, blockquotes from the header area) if present. Preserved verbatim from parse.
+4. **For each slide**, write in order:
    - `---` separator
    - Blank line
    - `### Caption` (if present)
@@ -225,11 +226,11 @@ When the app writes back a slide that contained markdown elements it didn't pars
    - `> source` lines (if present)
    - Blank line
    - Presenter notes (if present)
-   - `### Unrecognized content` + blob (if any)
+   - `### Unrecognized content` heading + blob (if any). The blob is stored WITHOUT the heading — the writer adds the heading on output.
    - Blank line
-4. **Trailing `---`** after last slide.
-5. **Trailing newline** at end of file.
-6. **Atomic writes** — write to temp file, then rename.
+5. **Trailing `---`** after last slide.
+6. **Trailing newline** at end of file.
+7. **Atomic writes** — write to temp file, then rename.
 
 **Note on element ordering:** The writer emits elements in a fixed order (caption, images, source, notes, unrecognized). If the user wrote elements in a different order, saving will normalize the order. This is a deliberate design choice — consistent formatting makes the file easier to scan and edit.
 
@@ -248,8 +249,7 @@ The app can open:
 | Frontmatter (unknown keys) | `ProjectFile.rawFields` | Preserved on round-trip |
 | `# Title` | `ProjectFile.title` | Was in `slideshow.yml` |
 | `### Caption` | `SidecarData.caption` → `SlideData.caption` | Was in sidecar frontmatter |
-| `![alt](file)` alt text | `SlideData.altText` | New field |
-| `![alt](file)` filename | `Slide.imageFilename` | Was `Slide.fileURL` |
+| `![alt](file)` | `SlideData.images: [SlideImage]` | Array of `(filename: String, altText: String?)`. Was single `Slide.fileURL` |
 | `> blockquote` | `SlideData.source` | Was in sidecar frontmatter |
 | Plain text | `SlideData.notes` | Was in sidecar body |
 | `### Unrecognized content` | `SlideData.unrecognizedContent` | New field |
