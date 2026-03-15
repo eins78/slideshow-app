@@ -2,7 +2,6 @@ import SwiftUI
 
 struct WelcomeView: View {
     var onOpen: () -> Void
-    var onNew: () -> Void
 
     var body: some View {
         ContentUnavailableView {
@@ -13,13 +12,11 @@ struct WelcomeView: View {
             Button("Open Slideshow...") { onOpen() }
                 .accessibilityIdentifier("openSlideshowButton")
                 .buttonStyle(.borderedProminent)
-            Button("Create New...") { onNew() }
-                .accessibilityIdentifier("createNewButton")
         }
     }
 }
 
 #Preview("Welcome") {
-    WelcomeView(onOpen: {}, onNew: {})
+    WelcomeView(onOpen: {})
         .frame(width: 600, height: 400)
 }

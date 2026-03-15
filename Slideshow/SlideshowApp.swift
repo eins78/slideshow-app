@@ -93,8 +93,7 @@ struct SlideshowDocumentView: View {
                 ContentView(slideshow: slideshow, showPresenter: $showPresenter)
             } else {
                 WelcomeView(
-                    onOpen: { showFileImporter = true },
-                    onNew: { createNewSlideshow() }
+                    onOpen: { showFileImporter = true }
                 )
             }
         }
