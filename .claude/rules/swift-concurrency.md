@@ -18,6 +18,7 @@ These rules apply when writing or modifying any Swift file in this project.
   - Thumbnail generation via `CGImageSource`
   - Batch file rename operations
 - When using `Task.detached`, always specify the return type and capture list explicitly
+- Actors MUST NOT perform synchronous file I/O (CGImageSource, FileManager reads) directly — use `Task.detached` for I/O and the actor only for cache storage. Blocking I/O on the cooperative thread pool triggers "unsafeForcedSync" warnings and risks thread starvation.
 
 ## Sendable closures
 

@@ -8,7 +8,9 @@ Based on [swift-agents/mobile-a11y-specialist](https://github.com/Techopolis/swi
 
 - Every `Button`, `Toggle`, and custom interactive control MUST have an `accessibilityLabel`
 - Icon-only buttons MUST have an `accessibilityLabel` (SF Symbol name is not sufficient)
+- Content images (`Image(uiImage:)`, `Image(nsImage:)`) MUST have `.accessibilityLabel` and `.accessibilityAddTraits(.isImage)`
 - Decorative images (backgrounds, dividers, chrome) MUST use `.accessibilityHidden(true)`
+- Tappable images MUST also have `.accessibilityAddTraits(.isButton)`
 - Section headers MUST use `.accessibilityAddTraits(.isHeader)`
 - Use `.accessibilityAddTraits` — never direct trait assignment (overwrites defaults)
 
