@@ -5,6 +5,9 @@ struct SlideListPanel: View {
     @Bindable var slideshow: Slideshow
     var viewMode: ContentView.ViewMode = .list
     var searchText: String = ""
+    @Binding var isDirty: Bool
+    @Binding var saveTrigger: Bool
+    var hostWindow: NSWindow?
 
     private var filteredSlides: [Slide] {
         if searchText.isEmpty { return slideshow.slides }
@@ -15,10 +18,18 @@ struct SlideListPanel: View {
 
     var body: some View {
         Group {
-            if viewMode == .list {
+            switch viewMode {
+            case .list:
                 listView
-            } else {
+            case .grid:
                 gridView
+            case .text:
+                SlideshowTextView(
+                    slideshow: slideshow,
+                    isDirty: $isDirty,
+                    saveTrigger: $saveTrigger,
+                    hostWindow: hostWindow
+                )
             }
         }
     }
@@ -125,8 +136,13 @@ struct SlideListPanel: View {
     for slide in slides { slide.fileSize = 2_000_000 }
     slideshow.slides = slides
     slideshow.selectedSlideID = slides[0].id
-    return SlideListPanel(slideshow: slideshow, viewMode: .list)
-        .frame(width: 350, height: 400)
+    return SlideListPanel(
+        slideshow: slideshow,
+        viewMode: .list,
+        isDirty: .constant(false),
+        saveTrigger: .constant(false)
+    )
+    .frame(width: 350, height: 400)
 }
 
 #Preview("Slide List — Grid Mode") {
@@ -135,6 +151,11 @@ struct SlideListPanel: View {
         Slide(section: SlideSection(images: [SlideImage(filename: "\(String(format: "%03d", i))--photo-\(i).jpg")]))
     }
     slideshow.slides = slides
-    return SlideListPanel(slideshow: slideshow, viewMode: .grid)
-        .frame(width: 400, height: 400)
+    return SlideListPanel(
+        slideshow: slideshow,
+        viewMode: .grid,
+        isDirty: .constant(false),
+        saveTrigger: .constant(false)
+    )
+    .frame(width: 400, height: 400)
 }

@@ -90,6 +90,52 @@ public final class Slideshow {
         if let error = writeError ?? coordinatorError { throw error }
     }
 
+    /// Save raw text to disk (preserving user's exact formatting), then parse to update the model.
+    /// Used by the text view — writes the user's text as-is, then syncs the in-memory model.
+    public func saveRawText(_ text: String) throws {
+        guard let url = documentURL else { return }
+
+        var coordinatorError: NSError?
+        var writeError: Error?
+        let coordinator = NSFileCoordinator(filePresenter: filePresenter)
+        coordinator.coordinate(
+            writingItemAt: url,
+            options: .forReplacing,
+            error: &coordinatorError
+        ) { writeURL in
+            do {
+                try text.write(to: writeURL, atomically: true, encoding: .utf8)
+            } catch {
+                writeError = error
+            }
+        }
+        if let error = writeError ?? coordinatorError { throw error }
+
+        let parsed = SlideshowParser().parse(text)
+
+        let prevFilename = selectedSlide?.section.images.first?.filename
+        let prevCaption = selectedSlide?.section.caption
+        let prevIndex = selectedIndex
+
+        document = parsed
+        let folderURL = url.deletingLastPathComponent()
+        let availableFiles = (try? FileManager.default.contentsOfDirectory(
+            at: folderURL, includingPropertiesForKeys: nil
+        ))?.map(\.lastPathComponent) ?? []
+
+        slides = parsed.slides.map { section in
+            let slide = Slide(section: section)
+            slide.resolveImageURLs(relativeTo: folderURL, availableFiles: availableFiles)
+            return slide
+        }
+
+        restoreSelection(
+            prevFilename: prevFilename,
+            prevCaption: prevCaption,
+            prevIndex: prevIndex
+        )
+    }
+
     // MARK: - File watching
 
     /// Start watching `documentURL` for external changes.
