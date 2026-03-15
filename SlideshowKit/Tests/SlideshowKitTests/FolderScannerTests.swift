@@ -45,4 +45,47 @@ struct FolderScannerTests {
         let mdSlides = slides.filter { $0.fileURL.pathExtension == "md" }
         #expect(mdSlides.isEmpty)
     }
+
+    // MARK: - scanWithProjectFile
+
+    @Test("scanWithProjectFile returns parsed project file")
+    func scanWithProjectFileReturnsProjectFile() async throws {
+        let result = try await scanner.scanWithProjectFile(folderURL: fixtureURL())
+        #expect(result.projectFile?.title == "Test Slideshow")
+        #expect(result.projectFile?.version == 1)
+    }
+
+    @Test("scanWithProjectFile returns nil project file when missing")
+    func scanWithProjectFileReturnsNilWhenMissing() async throws {
+        // Create a temp folder without slideshow.yml
+        let tmpDir = FileManager.default.temporaryDirectory
+            .appending(path: "scanner-no-project-\(UUID())")
+        try FileManager.default.createDirectory(at: tmpDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tmpDir) }
+
+        let jpeg = Data([0xFF, 0xD8, 0xFF, 0xD9])
+        try jpeg.write(to: tmpDir.appending(path: "photo.jpg"))
+
+        let result = try await scanner.scanWithProjectFile(folderURL: tmpDir)
+        #expect(result.projectFile == nil)
+        #expect(result.slides.count == 1)
+    }
+
+    @Test("slideshow.yml is not counted as slide or sidecar")
+    func projectFileNotCountedAsSlideOrSidecar() async throws {
+        let result = try await scanner.scanWithProjectFile(folderURL: fixtureURL())
+        // test-slideshow has 3 images — slideshow.yml must not inflate the count
+        #expect(result.slides.count == 3)
+        let ymlSlides = result.slides.filter {
+            $0.fileURL.lastPathComponent == ProjectFile.filename
+        }
+        #expect(ymlSlides.isEmpty)
+    }
+
+    @Test("Existing scan() still returns same slides")
+    func existingScanStillWorks() async throws {
+        let slides = try await scanner.scan(folderURL: fixtureURL())
+        let result = try await scanner.scanWithProjectFile(folderURL: fixtureURL())
+        #expect(slides.count == result.slides.count)
+    }
 }

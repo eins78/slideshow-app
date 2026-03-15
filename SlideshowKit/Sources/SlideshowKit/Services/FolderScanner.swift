@@ -4,11 +4,17 @@ import UniformTypeIdentifiers
 /// Scans a folder for image files and matches them with sidecar `.md` files.
 public struct FolderScanner: Sendable {
     private let sidecarParser = SidecarParser()
+    private let projectFileParser = ProjectFileParser()
 
     public init() {}
 
     /// Scan a folder URL and return an ordered list of Slides.
     public func scan(folderURL: URL) async throws -> [Slide] {
+        try await scanWithProjectFile(folderURL: folderURL).slides
+    }
+
+    /// Scan a folder URL and return slides with an optional project file.
+    public func scanWithProjectFile(folderURL: URL) async throws -> ScanResult {
         let fileManager = FileManager.default
         let contents = try fileManager.contentsOfDirectory(
             at: folderURL,
@@ -16,11 +22,20 @@ public struct FolderScanner: Sendable {
             options: [.skipsHiddenFiles]
         )
 
-        // Separate images and sidecars
+        // Separate images, sidecars, and project file
         var imageURLs: [URL] = []
         var sidecarURLs: [String: URL] = [:] // lowercased image filename -> sidecar URL
+        var projectFile: ProjectFile?
 
         for url in contents {
+            let filename = url.lastPathComponent
+
+            // Skip project file from image/sidecar classification
+            if filename == ProjectFile.filename {
+                projectFile = projectFileParser.parse(url: url)
+                continue
+            }
+
             let ext = url.pathExtension.lowercased()
             if ext == "md" {
                 // Sidecar: strip .md to get the image filename
@@ -56,7 +71,7 @@ public struct FolderScanner: Sendable {
             slides.append(slide)
         }
 
-        return slides
+        return ScanResult(slides: slides, projectFile: projectFile)
     }
 
     // Fast-path on extension set, fallback to UTType for rare extensions
