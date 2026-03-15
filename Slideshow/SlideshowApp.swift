@@ -128,11 +128,8 @@ struct SlideshowDocumentView: View {
         panel.begin { response in
             guard response == .OK, let url = panel.url else { return }
             Task {
+                // openSlideshow auto-creates slideshow.md if missing
                 await openSlideshow(at: url)
-                if slideshow.projectFile == nil {
-                    slideshow.projectFile = ProjectFile()
-                    try? slideshow.saveProjectFile()
-                }
             }
         }
     }
@@ -199,9 +196,33 @@ struct SlideshowDocumentView: View {
             for name in ["001--photo.jpg", "002--photo.jpg", "003--photo.jpg"] {
                 try? jpeg.write(to: tmpDir.appending(path: name))
             }
-            try? "---\ncaption: Test slide\n---\nNotes"
-                .write(to: tmpDir.appending(path: "002--photo.jpg.md"),
-                       atomically: true, encoding: .utf8)
+            let md = """
+            ---
+            format: https://example.com/slideshow/v1
+            ---
+
+            # Test Slideshow
+
+            ---
+
+            ![](001--photo.jpg)
+
+            ---
+
+            ### Test slide
+
+            ![](002--photo.jpg)
+
+            Notes
+
+            ---
+
+            ![](003--photo.jpg)
+
+            ---
+            """
+            try? md.write(to: tmpDir.appending(path: "slideshow.md"),
+                          atomically: true, encoding: .utf8)
         }
 
         await openSlideshow(at: tmpDir)
@@ -225,11 +246,7 @@ struct SlideshowDocumentView: View {
             .deletingLastPathComponent().deletingLastPathComponent()
             .appending(path: "Examples/Paintings That Tell Secrets")
 
-        // Mirrors FolderScanner.imageExtensions — kept inline since that set is private
-        let imageExtensions: Set<String> = [
-            "jpg", "jpeg", "png", "heic", "heif", "tiff", "tif",
-            "raw", "dng", "cr2", "cr3", "nef", "arw", "orf", "rw2", "webp",
-        ]
+        let imageExtensions = FolderScanner.imageExtensions
         let contents = (try? fm.contentsOfDirectory(
             at: examplesDir,
             includingPropertiesForKeys: nil
@@ -241,8 +258,9 @@ struct SlideshowDocumentView: View {
     }
 
     private func openSlideshow(at url: URL) async {
-        // Stop accessing the previous slideshow's security-scoped resource
-        // before starting the new one. Must balance start/stop calls.
+        // Stop watching and accessing the previous slideshow before loading a new one.
+        slideshow.stopWatching()
+        // Must balance start/stop calls for security-scoped resources.
         // See: https://developer.apple.com/documentation/foundation/url/1779698-startaccessingsecurityscopedreso
         if let oldURL = slideshow.folderURL {
             oldURL.stopAccessingSecurityScopedResource()
@@ -258,14 +276,46 @@ struct SlideshowDocumentView: View {
         NSDocumentController.shared.noteNewRecentDocumentURL(url)
 
         let scanner = FolderScanner()
+        let parser = SlideshowParser()
+
         do {
-            let result = try await scanner.scanWithProjectFile(folderURL: url)
-            slideshow.folderURL = url
+            let result: ScanResult
+
+            if url.pathExtension.lowercased() == "md" {
+                // Opening a .md file directly — validate it
+                guard parser.isValidSlideshowFile(url: url) else {
+                    if didStartAccessing { url.stopAccessingSecurityScopedResource() }
+                    scanError = NSError(
+                        domain: "is.ars.slideshow",
+                        code: 1,
+                        userInfo: [NSLocalizedDescriptionKey: "This file is not a slideshow. Expected slideshow.md or a file with format frontmatter."]
+                    )
+                    return
+                }
+                result = try await scanner.scan(documentURL: url)
+            } else {
+                // Opening a folder
+                result = try await scanner.scan(folderURL: url)
+            }
+
+            // If we opened a folder with no slideshow.md, create one
+            var docURL = result.documentURL
+            var doc = result.document ?? SlideshowDocument()
+            if docURL == nil, !url.pathExtension.lowercased().hasSuffix("md") {
+                let mdURL = url.appendingPathComponent(SlideshowDocument.defaultFilename)
+                doc.title = url.lastPathComponent
+                doc.slides = result.slides.map(\.section)
+                try? SlideshowWriter().write(doc, to: mdURL)
+                docURL = mdURL
+            }
+
+            slideshow.documentURL = docURL
+            slideshow.document = doc
             slideshow.slides = result.slides
-            slideshow.projectFile = result.projectFile
             if let first = result.slides.first {
                 slideshow.selectedSlideID = first.id
             }
+            slideshow.startWatching()
         } catch {
             if didStartAccessing { url.stopAccessingSecurityScopedResource() }
             scanError = error

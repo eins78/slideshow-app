@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-A native macOS SwiftUI app for presenting image-heavy slideshows. Users point it at any folder of images with optional markdown sidecar files for captions and presenter notes. An optional `slideshow.yml` project file adds title metadata. **Not a slide editor — a viewer/presenter for curated image collections.**
+A native macOS SwiftUI app for presenting image-heavy slideshows. A project is a folder of images with a `slideshow.md` file that curates the presentation — slide order, captions, credits, and presenter notes in a single human-readable markdown file. **Not a slide editor — a viewer/presenter for curated image collections.**
 
 Design authority: MANIFESTO.md — all design decisions must pass its 8-question checklist. When in doubt, the manifesto wins.
 
@@ -24,7 +24,7 @@ Data flow uses `@Observable` (Observation framework). No Combine.
 
 - Swift 6 (strict concurrency)
 - SwiftUI, macOS 26+ / iOS 26+
-- [swift-markdown](https://github.com/swiftlang/swift-markdown) (Apple SPM) — parsing presenter notes
+- [swift-markdown](https://github.com/swiftlang/swift-markdown) (Apple SPM) — AST-based parsing of `slideshow.md`
 - [Yams](https://github.com/jpsim/Yams) — YAML frontmatter parsing
 - ImageIO / CGImageSource — EXIF reading, thumbnail generation
 - MapKit — inline GPS coordinate display
@@ -40,7 +40,7 @@ cd SlideshowKit && swift package resolve
 cd SlideshowKit && swift test
 
 # Run a single test
-cd SlideshowKit && swift test --filter SlideshowKitTests.SidecarParserTests/testFrontmatterParsing
+cd SlideshowKit && swift test --filter SlideshowKitTests.SlideshowParserTests/parsesFrontmatter
 
 # Generate Xcode project (must run after changing project.yml or adding files)
 xcodegen generate
@@ -69,30 +69,22 @@ This git repo (`/Users/mfa/CODE/slideshow-app`) is the working directory. The Xc
 ## Key Design Decisions
 
 ### File/Folder Architecture
-A slideshow project is any folder of images. An optional `slideshow.yml` project file adds title and future layout metadata — without it, the folder name becomes the title. The app manages file I/O directly — **not** using `DocumentGroup`/`ReferenceFileDocument` (autosave conflicts with direct file writes, `FileWrapper` overhead prohibitive for large image bundles).
+A slideshow project is a folder of images with a `slideshow.md` file. The `.md` file curates the presentation — only referenced images are in the show. Without it, the folder name becomes the title and each image becomes a slide. The app manages file I/O directly — **not** using `DocumentGroup`/`ReferenceFileDocument` (autosave conflicts with direct file writes, `FileWrapper` overhead prohibitive for large image bundles).
 
-### Sidecar Format
-Sidecar files use the naming pattern `photo.jpg.md` (image filename + `.md`). Format:
-```markdown
----
-caption: Golden hour, Wollishofen
-source: |
-  © Max F. Albrecht 2024
-  Downloaded from Lightroom CC
----
-Presenter notes in markdown here.
-```
+### slideshow.md Format
+Single markdown file per presentation. Uses `---` separators between slides. See `docs/superpowers/specs/2026-03-15-slideshow-md-format-design.md` for full specification.
 
-Parsing rules:
-- Frontmatter recognized only when `---` appears on line 1, ends at next `---` on its own line
-- No frontmatter fallback: first line = caption, blank line, then presenter notes
-- Unknown frontmatter fields are preserved on write, ignored on read
-- Malformed YAML → entire file treated as plain text notes
-- Images without sidecar are valid slides; `.md` files without matching image are ignored
-- CRLF normalized on parse
+Key parsing rules:
+- YAML frontmatter with `format:` URL for identification
+- `---` separators between slides (universal markdown-presentation convention)
+- Headings → captions, `![](filename.jpg)` → image references, `> blockquotes` → source/credit
+- Plain paragraphs/lists/tables/code → presenter notes
+- Unknown content preserved under `### Unrecognized content` heading on write-back
+- Multiple `.md` files can curate different presentations from the same images
+- Images must be in same directory as `.md` file (no paths, no URLs)
 
 ### Slide Ordering
-Filesystem order (alphabetical). App renames files with `\d{3}--` prefix on drag reorder (e.g., `003--sunset.jpg`). Two-pass rename via temp UUIDs to avoid collisions.
+Slide order = position in `slideshow.md`. No filesystem renaming. The file is the source of truth.
 
 ### Image Loading
 - No `AsyncImage` — uses `NSImage`-based loading
@@ -115,7 +107,7 @@ A task is NOT done until ALL of these are satisfied:
 4. No `as!` force casts — use `as?` with handling
 5. No `@unchecked Sendable`, no `nonisolated(unsafe)`
 6. No `import Combine`
-7. Sidecar round-trip: unknown frontmatter keys must survive parse → write unchanged
+7. Round-trip: parse → write → parse must preserve all data (frontmatter, slides, unrecognized content)
 8. Tests written before or alongside implementation, never after
 9. One logical change per commit; imperative mood, lowercase, no trailing period
 10. **Simplify:** after committing, run `/simplify` to review changed code for reuse, quality, and efficiency — fix any issues found before proceeding
@@ -134,14 +126,14 @@ When a review repeatedly flags a deliberate design choice that we won't change, 
 
 ### Code Conventions
 
-- `Yams.dump` with `sortedKeys: true` for deterministic output
+- `Yams.dump` with `sortKeys: true` for deterministic output
 - `DateFormatter` instances are `static` (avoid repeated allocation)
 - `isImageFile()` uses fast-path `Set<String>` of extensions, not runtime UTType resolution
-- `FileReorderer` skips no-op renames (source == destination)
 - EXIF reading wrapped in `Task.detached` to avoid main actor
 - EditorPanel disk writes debounced (500ms) — critical for iCloud Drive
-- File operations (createSidecar, removeSlide, moveSlide, addImages) live on the `Slideshow` model, not in views
+- File operations (removeSlide, moveSlide, addImages, save) live on the `Slideshow` model, not in views
 - `addImages()` is incremental (no full re-scan)
+- `SlideshowWriter` always writes frontmatter with `format:` key to prevent `---` ambiguity
 - Bundle identifier: `is.ars.slideshow`
 
 ### Detailed Rules
@@ -169,10 +161,10 @@ Context for external reviewers (Gemini, OpenAI) who lack access to the full code
 
 - **Stack:** Swift 6 strict concurrency, SwiftUI, macOS 26+ / iOS 26+ (Xcode 26 beta). `.v26` platform targets are correct and intentional.
 - **`CLLocationCoordinate2D`** is `Sendable` in the macOS 26 SDK — no wrapper needed.
-- **File operations on `Slideshow` model** (removeSlide, moveSlide, createSidecar, addImages) are synchronous by design. This is a deliberate architecture choice — views call model methods, model owns I/O. Do not flag as "should be async" or "should be in a service."
+- **File operations on `Slideshow` model** (removeSlide, moveSlide, addImages, save) are synchronous by design. This is a deliberate architecture choice — views call model methods, model owns I/O. Do not flag as "should be async" or "should be in a service."
 - **`@Observable` without `@MainActor`** on `Slide`: intentional. Slides are created in background (FolderScanner) and observed by views. `@MainActor` is added at the view-model level (`Slideshow`), not per-entity.
-- **`try?` in file deletion:** acceptable for MVP — orphaned files on disk are a minor issue vs. blocking the user with error dialogs.
-- **`rawFrontmatter` as `[String: String]`:** sidecar YAML is flat key-value pairs. Lossy conversion of complex types is acceptable — we don't support nested YAML.
+- **`try?` in save:** acceptable for MVP — save failures are non-critical vs. blocking the user.
+- **Frontmatter as `[String: String]`:** YAML is flat key-value pairs. Lossy conversion of complex types is acceptable — we don't support nested YAML.
 - **No `AsyncImage`** — all image loading via `ImageCache` actor + `NSImage`.
 - **Review focus:** Logic errors, concurrency bugs, missing edge cases, API misuse. Not: architecture redesigns, hypothetical performance, or "should use a different pattern."
 
@@ -180,3 +172,5 @@ Context for external reviewers (Gemini, OpenAI) who lack access to the full code
 
 - Design spec: `~/OPS/home-workspace/docs/superpowers/specs/2026-03-14-slideshow-app-design.md`
 - Implementation plan: `~/OPS/home-workspace/docs/superpowers/specs/2026-03-14-slideshow-implementation-plan.md`
+- slideshow.md format spec: `docs/superpowers/specs/2026-03-15-slideshow-md-format-design.md`
+- slideshow.md implementation plan: `docs/superpowers/plans/2026-03-15-slideshow-md-format.md`

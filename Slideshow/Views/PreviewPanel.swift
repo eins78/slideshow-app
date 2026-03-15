@@ -48,7 +48,7 @@ struct PreviewPanel: View {
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                 }
 
-                if let caption = slide.sidecar?.caption {
+                if let caption = slide.section.caption {
                     Text(caption)
                         .font(.title3)
                         .foregroundStyle(.white)
@@ -68,7 +68,10 @@ struct PreviewPanel: View {
             imageLoaded = true
             return
         }
-        let url = slide.fileURL
+        guard let url = slide.primaryImageURL else {
+            imageLoaded = true
+            return
+        }
         let image = await imageCache.thumbnailNSImage(for: url)
         previewImage = image
         imageLoaded = true
@@ -78,12 +81,12 @@ struct PreviewPanel: View {
     private var notesPreview: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 8) {
-                if let sidecar = slideshow.selectedSlide?.sidecar {
-                    if sidecar.source != nil {
-                        SourceTextView(sidecar: sidecar)
+                if let slide = slideshow.selectedSlide {
+                    if slide.section.source != nil {
+                        SourceTextView(section: slide.section)
                     }
-                    if !sidecar.notes.isEmpty {
-                        MarkdownRenderedView(markdown: sidecar.notes)
+                    if !slide.section.notes.isEmpty {
+                        MarkdownRenderedView(markdown: slide.section.notes)
                     }
                 }
             }
@@ -95,15 +98,13 @@ struct PreviewPanel: View {
 }
 
 #Preview("Preview Panel") {
-    let slideshow = Slideshow(folderURL: URL(fileURLWithPath: "/tmp/demo"))
-    let slide = Slide(
-        fileURL: URL(fileURLWithPath: "/tmp/demo/sunset.jpg"),
-        sidecar: SidecarData(
-            caption: "Golden hour",
-            source: "© Photographer 2024\nLightroom CC",
-            notes: "Beautiful sunset over the lake.\n\n**Discuss:** composition and light"
-        )
-    )
+    let slideshow = Slideshow()
+    let slide = Slide(section: SlideSection(
+        caption: "Golden hour",
+        images: [SlideImage(filename: "sunset.jpg")],
+        source: "© Photographer 2024\nLightroom CC",
+        notes: "Beautiful sunset over the lake.\n\n**Discuss:** composition and light"
+    ))
     slideshow.slides = [slide]
     slideshow.selectedSlideID = slide.id
     return PreviewPanel(slideshow: slideshow)

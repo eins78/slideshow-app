@@ -8,17 +8,23 @@ Design authority for all conceptual decisions. When in doubt, the manifesto wins
 
 2. **Simple format, usable without the app.** Browse the pictures in order, read the `.md` files. A human with a file manager can understand and use a slideshow project with zero tooling.
 
-3. **File order = slide order.** Filename sorting determines presentation order. The `003--` prefix convention makes order explicit and portable.
+3. **Slide order = file position.** The order slides appear in `slideshow.md` determines presentation order. No filesystem renaming — the file is the source of truth.
 
-4. **The project file is optional progressive enhancement.** `slideshow.yml` adds title and future layout metadata. Without it, everything works — folder name becomes the title, each image becomes its own slide.
+4. **A single `slideshow.md` curates the presentation.** Title, slide order, captions, credits, and notes — all in one human-readable markdown file. Without it, each image in the folder becomes its own slide.
 
 5. **Images are sacred.** Never converted, re-encoded, embedded, or moved without explicit user action. The app presents images; it does not own them.
 
-6. **Sidecar `.md` files are per-image metadata.** Caption, source, presenter notes — all in a human-readable markdown file next to the image. Unknown frontmatter keys survive round-trips.
+6. **Only referenced images are in the show.** The folder is the library; the `.md` file is the curated selection. Multiple `.md` files can curate different presentations from the same images.
 
-7. **The project file stores project-level metadata.** Title, version, and future multi-image layout definitions live in `slideshow.yml` — not distributed across sidecars.
+7. **Unknown content is preserved, never discarded.** Markdown elements the app doesn't understand are collected under an "Unrecognized content" heading and round-tripped unchanged.
 
-8. **Everything degrades gracefully.** Missing project file = folder name as title. Missing sidecar = image-only slide. Malformed YAML = plain text fallback. The app never refuses to open a valid folder of images.
+8. **Everything degrades gracefully.** Missing `slideshow.md` = each image becomes a slide. Malformed YAML = no frontmatter. Unknown markdown = preserved as-is. The app never refuses to open a valid folder of images.
+
+## For Visual Storytellers
+
+This app is for **visual storytellers** — photographers, curators, art critics. The user's story begins with a collection of images, trimmed down to a curated sub-selection in a specific order. Text (captions, notes) is added to support the images, not the other way around.
+
+Compare with iA Presenter: it serves writers and storytellers whose workflow begins with writing text, then splitting it into slides. Our workflow begins with images, then adds structure and narrative around them.
 
 ## The Checklist
 

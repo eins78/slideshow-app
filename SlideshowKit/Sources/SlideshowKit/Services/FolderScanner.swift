@@ -1,90 +1,148 @@
 import Foundation
 import UniformTypeIdentifiers
 
-/// Scans a folder for image files and matches them with sidecar `.md` files.
+/// Scans a folder for images and parses `slideshow.md` if present.
 public struct FolderScanner: Sendable {
-    private let sidecarParser = SidecarParser()
-    private let projectFileParser = ProjectFileParser()
+    private let slideshowParser = SlideshowParser()
 
     public init() {}
 
-    /// Scan a folder URL and return an ordered list of Slides.
-    public func scan(folderURL: URL) async throws -> [Slide] {
-        try await scanWithProjectFile(folderURL: folderURL).slides
+    /// Scan a folder URL. Looks for `slideshow.md`, parses it, builds slides.
+    /// If no `slideshow.md` found, falls back to one slide per image.
+    public func scan(folderURL: URL) async throws -> ScanResult {
+        let (contents, imageURLs) = try discoverImages(in: folderURL)
+
+        // Look for slideshow.md (case-insensitive)
+        let slideshowMD = contents.first {
+            $0.lastPathComponent.lowercased() == SlideshowDocument.defaultFilename.lowercased()
+        }
+
+        if let mdURL = slideshowMD {
+            return buildFromDocument(
+                mdURL: mdURL,
+                folderURL: folderURL,
+                imageURLs: imageURLs
+            )
+        }
+
+        // No slideshow.md — fallback: one slide per image
+        return buildFromImages(folderURL: folderURL, imageURLs: imageURLs)
     }
 
-    /// Scan a folder URL and return slides with an optional project file.
-    public func scanWithProjectFile(folderURL: URL) async throws -> ScanResult {
-        let fileManager = FileManager.default
-        let contents = try fileManager.contentsOfDirectory(
+    /// Scan from a specific `.md` file URL.
+    public func scan(documentURL: URL) async throws -> ScanResult {
+        let folderURL = documentURL.deletingLastPathComponent()
+        let (_, imageURLs) = try discoverImages(in: folderURL)
+
+        return buildFromDocument(
+            mdURL: documentURL,
+            folderURL: folderURL,
+            imageURLs: imageURLs
+        )
+    }
+
+    // MARK: - Image discovery
+
+    /// List directory contents and return sorted image URLs.
+    private func discoverImages(in folderURL: URL) throws -> (contents: [URL], imageURLs: [URL]) {
+        let contents = try FileManager.default.contentsOfDirectory(
             at: folderURL,
             includingPropertiesForKeys: [.fileSizeKey, .contentTypeKey],
             options: [.skipsHiddenFiles]
         )
 
-        // Separate images, sidecars, and project file
-        var imageURLs: [URL] = []
-        var sidecarURLs: [String: URL] = [:] // lowercased image filename -> sidecar URL
-        var projectFile: ProjectFile?
+        let imageURLs = contents
+            .filter { isImageFile($0) }
+            .sorted { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }
 
-        for url in contents {
-            let filename = url.lastPathComponent
+        return (contents, imageURLs)
+    }
 
-            // Skip project file from image/sidecar classification
-            if filename == ProjectFile.filename {
-                projectFile = projectFileParser.parse(url: url)
-                continue
-            }
+    // MARK: - Building slides
 
-            let ext = url.pathExtension.lowercased()
-            if ext == "md" {
-                // Sidecar: strip .md to get the image filename
-                let imageFilename = url.deletingPathExtension().lastPathComponent.lowercased()
-                sidecarURLs[imageFilename] = url
-            } else if isImageFile(url) {
-                imageURLs.append(url)
-            }
+    private func buildFromDocument(
+        mdURL: URL,
+        folderURL: URL,
+        imageURLs: [URL]
+    ) -> ScanResult {
+        guard let doc = slideshowParser.parse(url: mdURL) else {
+            // Unreadable .md — fall back to image-only
+            return buildFromImages(folderURL: folderURL, imageURLs: imageURLs)
         }
 
-        // Sort images alphabetically
-        imageURLs.sort { $0.lastPathComponent.localizedStandardCompare($1.lastPathComponent) == .orderedAscending }
+        let imageFilenames = imageURLs.map(\.lastPathComponent)
 
-        // Build slides
+        // Build slides from document sections
         var slides: [Slide] = []
-        for imageURL in imageURLs {
-            let lowercasedName = imageURL.lastPathComponent.lowercased()
-            let sidecar: SidecarData?
-            if let sidecarURL = sidecarURLs[lowercasedName] {
-                sidecar = sidecarParser.parse(url: sidecarURL)
-            } else {
-                sidecar = nil
-            }
+        var referencedFilenames: Set<String> = []
 
-            let slide = Slide(fileURL: imageURL, sidecar: sidecar)
+        for section in doc.slides {
+            let slide = Slide(section: section)
+            slide.resolveImageURLs(
+                relativeTo: folderURL,
+                availableFiles: imageFilenames
+            )
 
-            // Read file size
-            if let resourceValues = try? imageURL.resourceValues(forKeys: [.fileSizeKey]),
-               let size = resourceValues.fileSize {
+            // Read file size from primary image
+            if let primaryURL = slide.primaryImageURL,
+               let rv = try? primaryURL.resourceValues(forKeys: [.fileSizeKey]),
+               let size = rv.fileSize {
                 slide.fileSize = Int64(size)
             }
 
             slides.append(slide)
+
+            for image in section.images {
+                referencedFilenames.insert(image.filename.lowercased())
+            }
         }
 
-        return ScanResult(slides: slides, projectFile: projectFile)
+        // Find images not referenced in the document
+        let availableImages = imageURLs.filter { url in
+            !referencedFilenames.contains(url.lastPathComponent.lowercased())
+        }
+
+        return ScanResult(
+            slides: slides,
+            document: doc,
+            documentURL: mdURL,
+            availableImages: availableImages
+        )
     }
 
-    // Fast-path on extension set, fallback to UTType for rare extensions
-    private static let imageExtensions: Set<String> = [
+    private func buildFromImages(
+        folderURL: URL,
+        imageURLs: [URL]
+    ) -> ScanResult {
+        let slides = imageURLs.map { imageURL -> Slide in
+            let section = SlideSection(
+                images: [SlideImage(filename: imageURL.lastPathComponent)]
+            )
+            let slide = Slide(section: section)
+            slide.resolveImageURLs(relativeTo: folderURL)
+
+            if let rv = try? imageURL.resourceValues(forKeys: [.fileSizeKey]),
+               let size = rv.fileSize {
+                slide.fileSize = Int64(size)
+            }
+
+            return slide
+        }
+
+        return ScanResult(slides: slides)
+    }
+
+    // MARK: - Image detection
+
+    /// Supported image file extensions (fast-path check before UTType fallback).
+    public static let imageExtensions: Set<String> = [
         "jpg", "jpeg", "png", "heic", "heif", "tiff", "tif",
         "raw", "dng", "cr2", "cr3", "nef", "arw", "orf", "rw2", "webp"
     ]
 
-    /// Check if a URL points to a supported image file.
     private func isImageFile(_ url: URL) -> Bool {
         let ext = url.pathExtension.lowercased()
         if Self.imageExtensions.contains(ext) { return true }
-        // Fallback for uncommon extensions — uses prefetched contentType
         guard let type = try? url.resourceValues(forKeys: [.contentTypeKey]).contentType else {
             return false
         }
