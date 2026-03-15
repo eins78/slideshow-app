@@ -1,128 +1,129 @@
-# Text View — Design Spec
+# Text View & Inspector Removal — Design Spec
 
-> Add a `.text` view mode to the middle column that shows the full `slideshow.md` document as read-only plain text.
+> Replace the inspector sidebar with an editable text view of the full `slideshow.md` document, with TextEdit-style saving.
 
 ## Context
 
-The data-format branch (`idea/data-format`, PR #10) replaces per-image `.md` sidecars with a single `slideshow.md` file per slideshow. This is the canonical document — all slide content lives in one markdown file with YAML frontmatter, an H1 title, and `---`-separated slide sections.
+The data-format branch (PR #10) replaces per-image `.md` sidecars with a single `slideshow.md` file per slideshow. This markdown document contains YAML frontmatter, an H1 title, and `---`-separated slide sections with captions, images, source attribution, and presenter notes.
 
-The text view is the first UI change after this data-format migration. It gives users direct visibility into the underlying document, complementing the visual list/grid modes.
+With the document as the canonical format, editing it directly is more natural than filling in separate fields in an inspector panel. This change removes the inspector and adds an editable text view as the primary editing interface.
 
 ## Motivation
 
-First step of the UI overhaul following the data-format change. Users working with `slideshow.md` as a document (editing in external editors, reviewing in version control, sharing as text) need to see the full document content inside the app. The list and grid modes show slides as discrete items — the text view shows them as a continuous document.
+UI overhaul after the data-format change. The inspector's EditorPanel (caption, source, notes fields) and FileInfoPanel (EXIF metadata) add complexity without proportional value for MVP. List and grid modes remain important for visual reordering; everything else is more ergonomic in plain text.
 
 ## Design
 
-### ViewMode Extension
+### Layout
 
-Add `.text` to the existing `ContentView.ViewMode` enum:
+Remove the inspector sidebar entirely. The layout becomes two panes:
 
-```swift
-enum ViewMode: String, CaseIterable {
-    case list, grid, text
-}
+```
+PreviewPanel (left)  |  SlideListPanel (right: list / grid / text)
 ```
 
-Add a third segment to the toolbar picker with SF Symbol `doc.plaintext`.
+The toolbar picker gains a third segment for text mode (SF Symbol `doc.plaintext`).
 
-Update the picker frame width to accommodate three segments (~120pt from current ~80pt).
+### SlideshowTextView
 
-### SlideListPanel Branch
-
-Add a `.text` case to the view mode switch in `SlideListPanel.body`:
-
-```swift
-switch viewMode {
-case .list: listView
-case .grid: gridView
-case .text: SlideshowTextView(slideshow: slideshow)
-}
-```
-
-### SlideshowTextView (New File)
-
-A new SwiftUI view at `Slideshow/Views/SlideshowTextView.swift`.
+New view at `Slideshow/Views/SlideshowTextView.swift`.
 
 **Responsibilities:**
-- Serialize the current in-memory `SlideshowDocument` to markdown text using `SlideshowWriter`
-- Display the result as read-only monospaced text in a `ScrollView`
-- Update when the document changes (Observation handles this — `slideshow.document` and `slideshow.slides` are `@Observable` properties)
+- Display the full `slideshow.md` content in an editable `TextEditor` with monospaced system font
+- Track dirty state (text modified since last load/save)
+- Save on Cmd+S, auto-save on app deactivation
+- Parse edited text back into the model on save
 
-**Implementation outline:**
+**State management:**
 
 ```swift
 struct SlideshowTextView: View {
     var slideshow: Slideshow
+    @State private var text: String = ""
+    @State private var lastSavedText: String = ""
 
-    private var documentText: String {
-        var doc = slideshow.document
-        doc.slides = slideshow.slides.map(\.section)
-        return SlideshowWriter().write(doc)
-    }
-
-    var body: some View {
-        ScrollView {
-            Text(documentText)
-                .font(.system(.body, design: .monospaced))
-                .textSelection(.enabled)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding()
-        }
-        .accessibilityLabel("Slideshow document text")
-    }
+    private var isDirty: Bool { text != lastSavedText }
 }
 ```
 
-**Key decisions:**
+The `text` buffer is the source of truth while editing. The model is not updated on every keystroke — only on save. This avoids cursor jumps, expensive mid-edit re-parsing, and observation feedback loops.
 
-1. **In-memory serialization, not disk read.** Uses `SlideshowWriter.write(document)` to generate text from the current model state. This means the text view always reflects unsaved edits, staying consistent with what list/grid show. Reading the file from disk would show stale state between saves.
+**Entering text mode:** Serialize the current model via `SlideshowWriter.write(document)` into the text buffer. Set `lastSavedText` to the same value.
 
-2. **Computed property, not cached.** `documentText` is a computed property that re-evaluates when Observation detects changes to `slideshow.document` or `slideshow.slides`. For typical slideshow sizes (10-100 slides), serialization is trivially fast. No caching needed.
+**Save flow:**
+1. Parse `text` via `SlideshowParser.parse(_:)` → `SlideshowDocument`
+2. Update `slideshow.document` and rebuild `slideshow.slides` from parsed sections
+3. Write to disk via `SlideshowWriter.write(document, to: url)`
+4. Set `lastSavedText = text`
+5. Set `NSWindow.isDocumentEdited = false`
 
-3. **Read-only.** No editing, no `TextEditor`. Users edit via the EditorPanel (inspector) or an external editor. The text view is for reading/reviewing.
+**Leaving text mode:** If dirty, save first, then switch. List/grid views observe the freshly updated model.
 
-4. **No slide selection sync.** Clicking in the text view does not select a slide. No scroll-to-current-slide. These are future enhancements, not v1.
+### Saving Behavior
 
-5. **Text selection enabled.** Users can select and copy text from the view — useful for sharing snippets.
+Modeled after TextEdit.app without adopting `NSDocument`:
+
+| Trigger | Mechanism |
+|---------|-----------|
+| Cmd+S | `.keyboardShortcut("s")` on a hidden save button or `.onKeyPress` |
+| App deactivation | `NotificationCenter` → `NSApplication.willResignActiveNotification` |
+| View mode switch | Check dirty state before switching from `.text` to `.list`/`.grid` |
+
+Dirty state drives:
+- **Title bar dot:** `NSWindow.isDocumentEdited` via `NSApp.keyWindow`
+- **Save-on-deactivation:** Only saves if dirty
+- **View mode switch:** Only parses if dirty
+
+### Parse Error Handling
+
+`SlideshowParser` is lenient by design:
+- Any text between `---` separators becomes a slide section
+- Unrecognized content is preserved in `SlideSection.unrecognizedContent`
+- Malformed YAML frontmatter → treated as plain text
+
+The raw text is always written to disk as-is — it's valid markdown regardless of how well it round-trips through the parser. If parsing produces unexpected slide structure, the user sees the effect when switching to list/grid view and can correct it in the text.
+
+### Structural Operations
+
+Reorder, add, and remove in list/grid mode continue to modify the model directly and call `slideshow.save()`. When the user switches to text mode, the text buffer is regenerated from the current model state. No conflict because text mode always starts fresh.
 
 ### Accessibility
 
-- `accessibilityLabel` on the ScrollView container
+- `TextEditor` supports VoiceOver natively
 - Monospaced system font respects Dynamic Type via `.system(.body, design: .monospaced)`
-- Text selection is VoiceOver-compatible
-- The toolbar picker segments already need `accessibilityLabel`s — add "List view", "Grid view", "Text view" labels to each segment's `Image`
+- Toolbar picker segments need `accessibilityLabel`s: "List view", "Grid view", "Text view"
+- Cmd+S save action needs an accessible label
 
-### Searchability
+### What Gets Deleted
 
-The existing `searchText` filtering in `SlideListPanel` applies to list/grid modes (filters by slide display name). In text mode, search filtering does not apply — the full document is always shown. The search field remains visible but has no effect in text mode. This is acceptable for v1; a future enhancement could highlight matches in the text.
-
-## What This Does Not Include
-
-- Syntax highlighting or markdown rendering
-- Editing in the text view
-- Click-to-select-slide (tapping a slide section to select it)
-- Scroll-to-current-slide (auto-scrolling to the selected slide's section)
-- Line numbers
-- Find-in-text (beyond macOS standard Cmd+F, which SwiftUI `Text` does not support natively)
-
-Each of these could be a follow-up feature. The v1 goal is simply: see the document.
-
-## Files Changed
-
-| File | Change |
+| File | Reason |
 |------|--------|
-| `Slideshow/Views/ContentView.swift` | Add `.text` to `ViewMode`, add picker segment, widen picker |
-| `Slideshow/Views/SlideListPanel.swift` | Add `.text` switch branch |
-| `Slideshow/Views/SlideshowTextView.swift` | **New file** — read-only document text view |
+| `EditorPanel.swift` | Replaced by direct text editing |
+| `FileInfoPanel.swift` | EXIF display deferred past MVP |
+
+From `ContentView.swift`:
+- `.inspector(isPresented:)` modifier and its content
+- `.inspectorColumnWidth()` modifier
+- `showInspector` state variable
+- Inspector toggle toolbar button with Cmd+Opt+I shortcut
+
+### What Stays
+
+- `PreviewPanel` — image preview + rendered notes (left pane)
+- `SlideListPanel` list/grid modes — visual reordering
+- `Slide.captionText`, `.sourceText`, `.notesText` computed properties — clean API, future use
+- `MarkdownRenderedView`, `SourceTextView` — used by PreviewPanel
+- `DraggableDivider` — used by PreviewPanel
+- All of SlideshowKit — no changes needed
 
 ## Dependencies
 
-- Requires `data-format` branch to be merged first (PR #10) — `SlideshowDocument`, `SlideshowWriter`, and the new `Slideshow.document` property are all introduced there.
+- Requires data-format branch (PR #10) merged first: `SlideshowDocument`, `SlideshowParser`, `SlideshowWriter`, `Slideshow.document`
 
 ## Testing
 
-- **Unit test (SlideshowKit):** Not needed — `SlideshowWriter` is already tested on the data-format branch. The text view is a pure display of its output.
-- **SwiftUI preview:** Add preview with sample `Slideshow` containing a few slides with captions and notes.
-- **UI test:** Add a test that switches to text view mode and verifies the document text is displayed (checks for presence of the slideshow title text in the view).
-- **Accessibility audit:** Include `testAccessibilityAudit()` covering the text view.
+- **Unit tests (SlideshowKit):** Not needed — parser/writer already tested on data-format branch
+- **SwiftUI preview:** Add preview with sample slideshow content in the text editor
+- **UI test:** Switch to text mode, verify document text appears, edit text, verify dirty state
+- **Accessibility audit:** `testAccessibilityAudit()` covering the text view
+- **Round-trip test:** Edit text → save → switch to list → verify slides reflect changes → switch to text → verify text matches
