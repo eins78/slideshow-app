@@ -180,7 +180,7 @@ When the app writes back content it didn't parse into known fields, those elemen
 
 ### Writing
 
-1. **Frontmatter** — always written with `format` and `title` keys. Unknown keys preserved. `Yams.dump(sortKeys: true)`.
+1. **Frontmatter** — always written with `format` key and `title` key (when present). Unknown keys preserved. `Yams.dump(sortKeys: true)`.
 2. **Header content** — written verbatim after frontmatter if present.
 3. **Per slide** — caption → images → source → notes → unrecognized content, separated by blank lines.
 4. **Trailing `---`** after last slide.
