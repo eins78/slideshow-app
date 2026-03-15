@@ -95,9 +95,9 @@ struct PreviewPanel: View {
 }
 
 #Preview("Preview Panel") {
-    let slideshow = Slideshow(folderURL: URL(fileURLWithPath: "/tmp/demo.slideshow"))
+    let slideshow = Slideshow(folderURL: URL(fileURLWithPath: "/tmp/demo"))
     let slide = Slide(
-        fileURL: URL(fileURLWithPath: "/tmp/demo.slideshow/sunset.jpg"),
+        fileURL: URL(fileURLWithPath: "/tmp/demo/sunset.jpg"),
         sidecar: SidecarData(
             caption: "Golden hour",
             source: "© Photographer 2024\nLightroom CC",
