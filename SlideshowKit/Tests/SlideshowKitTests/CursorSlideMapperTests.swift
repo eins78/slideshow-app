@@ -236,6 +236,66 @@ struct CursorSlideMapperTests {
         #expect(mapper.slideIndex(forCursorPosition: position, in: text) == 1)
     }
 
+    // MARK: - Trailing separator
+
+    @Test func cursorOnTrailingSeparatorReturnsPrecedingSlide() {
+        let text = """
+        ---
+        format: https://slideshow.ars.is/format/1.0
+        ---
+
+        # Title
+
+        ---
+
+        ## First Slide
+
+        ![](photo1.jpg)
+
+        ---
+
+        ## Second Slide
+
+        ![](photo2.jpg)
+
+        ---
+        """
+        // Cursor on the trailing --- returns the last slide (preceding separator behavior)
+        let position = text.count - 1
+        #expect(mapper.slideIndex(forCursorPosition: position, in: text) == 1)
+    }
+
+    @Test func cursorAfterTrailingSeparatorExceedsSlideCount() {
+        // SlideshowWriter produces output ending with \n---\n (trailing newline).
+        // NSTextView cursor can be at text.count, landing on the empty line after ---.
+        let text = """
+        ---
+        format: https://slideshow.ars.is/format/1.0
+        ---
+
+        # Title
+
+        ---
+
+        ## First Slide
+
+        ![](photo1.jpg)
+
+        ---
+
+        ## Second Slide
+
+        ![](photo2.jpg)
+
+        ---\n
+        """
+        // Cursor at text.count = on empty line after trailing ---
+        let position = text.count
+        // Mapper returns 2 (one past last slide index for 2 slides).
+        // The caller must clamp to slides.count - 1.
+        #expect(mapper.slideIndex(forCursorPosition: position, in: text) == 2)
+    }
+
     // MARK: - CRLF
 
     @Test func handlesCRLFNormalization() {

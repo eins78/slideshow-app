@@ -120,11 +120,13 @@ struct SlideshowTextView: View {
         text: String,
         position: Int
     ) {
-        guard let index = mapper.slideIndex(forCursorPosition: position, in: text),
-              index < doc.slides.count else {
+        guard let rawIndex = mapper.slideIndex(forCursorPosition: position, in: text),
+              !doc.slides.isEmpty else {
             slideshow.livePreview = LivePreview()
             return
         }
+        // Clamp: trailing --- separator produces an index beyond the last slide
+        let index = min(rawIndex, doc.slides.count - 1)
         let section = doc.slides[index]
         let imageURL: URL?
         if let folderURL = slideshow.folderURL,
