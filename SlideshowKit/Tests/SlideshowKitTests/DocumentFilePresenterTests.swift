@@ -121,6 +121,7 @@ struct DocumentFilePresenterTests {
         ) { url in
             try? "self change".write(to: url, atomically: true, encoding: .utf8)
         }
+        #expect(error == nil, "File coordination should succeed")
 
         // Wait to confirm no callback fires
         try await Task.sleep(for: .seconds(1))
@@ -225,6 +226,7 @@ struct SlideshowReloadTests {
 
         let slideshow = try await loadSlideshow(mdURL: mdURL)
         // Select the second slide (beta.jpg)
+        try #require(slideshow.slides.count > 1)
         slideshow.selectedSlideID = slideshow.slides[1].id
         #expect(slideshow.selectedSlide?.section.images.first?.filename == "beta.jpg")
 
@@ -273,6 +275,7 @@ struct SlideshowReloadTests {
         """)
 
         let slideshow = try await loadSlideshow(mdURL: mdURL)
+        try #require(slideshow.slides.count > 1)
         slideshow.selectedSlideID = slideshow.slides[1].id
         #expect(slideshow.selectedSlide?.section.caption == "Second")
 
@@ -326,6 +329,7 @@ struct SlideshowReloadTests {
 
         let slideshow = try await loadSlideshow(mdURL: mdURL)
         // Select last slide (index 2)
+        try #require(slideshow.slides.count > 2)
         slideshow.selectedSlideID = slideshow.slides[2].id
 
         // Remove last two slides, only a.jpg remains
@@ -366,7 +370,7 @@ struct SlideshowReloadTests {
         """)
 
         let slideshow = try await loadSlideshow(mdURL: mdURL)
-        let originalSlideID = slideshow.slides.first?.id
+        let originalSlideID = try #require(slideshow.slides.first?.id)
 
         // Reload without changing file — slides should keep same IDs
         await slideshow.reload()
