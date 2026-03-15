@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-A native macOS SwiftUI app for presenting image-heavy slideshows. Users point it at a folder of images (`.slideshow` bundle — a folder with a custom UTType conforming to `com.apple.package`) with optional markdown sidecar files for captions and presenter notes. **Not a slide editor — a viewer/presenter for curated image collections.**
+A native macOS SwiftUI app for presenting image-heavy slideshows. Users point it at any folder of images with optional markdown sidecar files for captions and presenter notes. An optional `slideshow.yml` project file adds title metadata. **Not a slide editor — a viewer/presenter for curated image collections.**
+
+Design authority: MANIFESTO.md — all design decisions must pass its 8-question checklist. When in doubt, the manifesto wins.
 
 Primary use case: photography portfolio reviews and art critiques.
 
@@ -67,7 +69,7 @@ This git repo (`/Users/mfa/CODE/slideshow-app`) is the working directory. The Xc
 ## Key Design Decisions
 
 ### File/Folder Architecture
-A `.slideshow` file is a macOS document package (folder presented as single file by Finder). Contains flat images + sidecar `.md` files. The app manages file I/O directly — **not** using `DocumentGroup`/`ReferenceFileDocument` (autosave conflicts with direct file writes, `FileWrapper` overhead prohibitive for large image bundles).
+A slideshow project is any folder of images. An optional `slideshow.yml` project file adds title and future layout metadata — without it, the folder name becomes the title. The app manages file I/O directly — **not** using `DocumentGroup`/`ReferenceFileDocument` (autosave conflicts with direct file writes, `FileWrapper` overhead prohibitive for large image bundles).
 
 ### Sidecar Format
 Sidecar files use the naming pattern `photo.jpg.md` (image filename + `.md`). Format:
