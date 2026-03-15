@@ -45,7 +45,7 @@ editing, and accessibility.
 | Info.plist metadata | Incomplete | Only has UTType export; missing display name, copyright |
 | Privacy manifest | Missing | No `PrivacyInfo.xcprivacy` — required for ALL uploads (ITMS-91053) |
 | Export compliance | Missing | Need `ITSAppUsesNonExemptEncryption = NO` in Info.plist |
-| Bundle ID registration | Missing | Must register `is.kte.slideshow` in Apple Developer portal |
+| Bundle ID registration | Missing | Must register `is.ars.slideshow` in Apple Developer portal |
 | Code signing team | Missing | No `DEVELOPMENT_TEAM` in `project.yml` |
 | iOS target in project.yml | Missing | Tracer code exists in git history, not yet on main |
 
@@ -55,7 +55,7 @@ Single branch, both platforms. The goal is proving the pipeline, not polishing U
 
 #### Step 1: Shared infra (both platforms)
 
-1. **Bundle ID registration** — Register `is.kte.slideshow` in
+1. **Bundle ID registration** — Register `is.ars.slideshow` in
    [Certificates, Identifiers & Profiles](https://developer.apple.com/account/resources/identifiers/list)
    on the Apple Developer portal. Must exist before creating the app record.
 2. **App icon** — Add `AppIcon-final.png` to `Assets.xcassets/AppIcon.appiconset`
@@ -66,7 +66,7 @@ Single branch, both platforms. The goal is proving the pipeline, not polishing U
    and `CFBundleVersion` to Info.plist
 4. **Info.plist** — Add:
    - `CFBundleDisplayName` — "Slideshow"
-   - `NSHumanReadableCopyright` — e.g. "Copyright © 2026 kte.is"
+   - `NSHumanReadableCopyright` — e.g. "Copyright © 2026 ars.is"
    - `ITSAppUsesNonExemptEncryption` = `NO` (no custom encryption, skip export
      compliance dialog on every upload)
 5. **Privacy manifest** — Create `PrivacyInfo.xcprivacy` declaring:
@@ -83,7 +83,7 @@ Single branch, both platforms. The goal is proving the pipeline, not polishing U
    - `SlideshowMobile/SlideshowMobileApp.swift` (~80 LOC) — entry point + `.fileImporter`
    - `SlideshowMobile/MobileContentView.swift` (~120 LOC) — page-swipe + thumbnail strip
    - iOS target in `project.yml` with deployment target iOS 26+
-   - iOS `Info.plist` with UTType registration for `is.kte.slideshow`
+   - iOS `Info.plist` with UTType registration for `is.ars.slideshow`
    - iOS entitlements (sandbox not required on iOS, but app-scope bookmarks needed)
 2. **Verify build** — Both targets must compile cleanly
 3. **Share icon + metadata** — iOS target uses same `Assets.xcassets`
@@ -93,7 +93,7 @@ Single branch, both platforms. The goal is proving the pipeline, not polishing U
 1. **Create app record** — App Store Connect > Apps > New App:
    - Platforms: iOS + macOS (or add macOS via "Add Platform" after)
    - Name: "Slideshow"
-   - Bundle ID: `is.kte.slideshow` (from dropdown, must be pre-registered)
+   - Bundle ID: `is.ars.slideshow` (from dropdown, must be pre-registered)
    - SKU: `slideshow` (permanent, internal-only identifier)
    - Primary language: English (U.S.)
 2. **Configure TestFlight** — Add internal tester group
@@ -132,7 +132,7 @@ Single branch, both platforms. The goal is proving the pipeline, not polishing U
 - [x] **Icon format:** Traditional `AppIcon.appiconset` with single 1024x1024 PNG. Liquid Glass `.icon` deferred to a future design pass.
 - [x] **App name:** "Slideshow" (working title, can change display name in App Store Connect later)
 - [x] **TestFlight group:** Internal only (up to 100 testers, no App Review required)
-- [x] **Bundle ID strategy:** Universal app — single `is.kte.slideshow` for both macOS and iPhone
+- [x] **Bundle ID strategy:** Universal app — single `is.ars.slideshow` for both macOS and iPhone
 - [x] **iOS scope:** Ship tracer-bullet code as-is (page-swipe browser, no editing). Real iOS MVP is a separate plan.
 
 ### Out of scope (deferred to `ios-target` plan)

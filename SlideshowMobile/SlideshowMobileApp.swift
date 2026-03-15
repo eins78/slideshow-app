@@ -22,17 +22,27 @@ struct SlideshowMobileApp: App {
 
     var body: some Scene {
         WindowGroup {
-            Group {
-                if slideshow.folderURL != nil {
-                    MobileContentView(slideshow: slideshow)
-                } else {
-                    ContentUnavailableView {
-                        Label("Open a Slideshow", systemImage: "photo.on.rectangle.angled")
-                    } description: {
-                        Text("Open a folder of images to get started.")
-                    } actions: {
-                        Button("Open Slideshow") { showFileImporter = true }
-                            .accessibilityLabel("Open slideshow folder")
+            NavigationStack {
+                Group {
+                    if slideshow.folderURL != nil {
+                        MobileContentView(slideshow: slideshow)
+                    } else {
+                        ContentUnavailableView {
+                            Label("Open a Slideshow", systemImage: "photo.on.rectangle.angled")
+                        } description: {
+                            Text("Open a folder of images to get started.")
+                        } actions: {
+                            Button("Open Slideshow") { showFileImporter = true }
+                                .accessibilityLabel("Open slideshow folder")
+                        }
+                    }
+                }
+                .toolbar {
+                    ToolbarItem(placement: .primaryAction) {
+                        Button("Open", systemImage: "folder") {
+                            showFileImporter = true
+                        }
+                        .accessibilityLabel("Open slideshow folder")
                     }
                 }
             }
@@ -46,32 +56,23 @@ struct SlideshowMobileApp: App {
                     Task { await openSlideshow(at: url) }
                 }
             }
-            .toolbar {
-                ToolbarItem(placement: .primaryAction) {
-                    Button("Open", systemImage: "folder") {
-                        showFileImporter = true
-                    }
-                    .accessibilityLabel("Open slideshow folder")
-                }
-            }
         }
     }
 
     private func openSlideshow(at url: URL) async {
-        if let previous = slideshow.folderURL {
-            previous.stopAccessingSecurityScopedResource()
-        }
-
         let didStartAccessing = url.startAccessingSecurityScopedResource()
 
         let scanner = FolderScanner()
         do {
             let slides = try await scanner.scan(folderURL: url)
+            // Revoke previous access only after successful scan
+            let previous = slideshow.folderURL
             slideshow.folderURL = url
             slideshow.slides = slides
             if let first = slides.first {
                 slideshow.selectedSlideID = first.id
             }
+            previous?.stopAccessingSecurityScopedResource()
         } catch {
             print("[slideshow-mobile] failed to scan folder: \(error)")
             if didStartAccessing {
