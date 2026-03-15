@@ -139,6 +139,7 @@ An H3 heading (`###`) within a slide section. Displayed as the slide's caption/t
 Standard markdown image syntax. References an image file in the same folder as the `.md` file.
 
 - **Filename only** — no paths, no URLs. The image must be in the same directory as the project file.
+- **Filename escaping** — filenames with spaces or special characters (parentheses, etc.) must be valid CommonMark. The writer uses angle bracket syntax for such filenames: `![](<my image (1).jpg>)`. The parser accepts both plain and angle-bracketed filenames.
 - **Alt text** — optional. Used as the accessibility description (VoiceOver). If empty (`![](file.jpg)`), the app falls back to the caption, then the image's own filename (per-image, not per-slide).
 - **Multiple images per slide** — 0 to N images allowed. Each `![](...)` on its own line is a separate image in the slide.
 - **Zero images** — valid. Creates a text-only slide (title card, section divider, placeholder for future image, cue to switch to another app).
@@ -198,8 +199,8 @@ When the app writes back a slide that contained markdown elements it didn't pars
 #### Reading
 
 1. **Normalize** — CRLF → LF.
-2. **Detect frontmatter** — if the file starts with `---` on line 1, attempt to parse YAML until the closing `---`. If the YAML is valid and contains at least one key, consume both `---` delimiters (they are NOT slide separators). If the YAML is malformed or empty (e.g., the opening `---` was actually a slide separator), do NOT consume it — rewind and treat the initial `---` as the first slide separator. Missing frontmatter → valid file, just no project metadata.
-3. **Parse header** — everything between the frontmatter (or start of file) and the first remaining `---` is the header. Extract the first H1 as title. Remaining paragraphs are project-level notes. Images and blockquotes in the header are treated as project-level content (not slide elements).
+2. **Detect frontmatter** — if the file starts with `---` on line 1, scan forward for a closing `---` on its own line. If no closing delimiter is found, treat the initial `---` as a slide separator (do not invoke the YAML parser). If a closing delimiter exists, attempt to parse the enclosed text as YAML. If the YAML is valid and contains at least one key, consume both `---` delimiters (they are NOT slide separators). If the YAML is malformed or empty (e.g., the opening `---` was actually a slide separator), do NOT consume it — rewind and treat the initial `---` as the first slide separator. Missing frontmatter → valid file, just no project metadata.
+3. **Parse header** — everything between the frontmatter (or start of file) and the first remaining `---` is the header. Extract the first H1 as title. The entire remaining header content (all AST nodes) is preserved verbatim as an opaque blob — this ensures no content is lost (tables, lists, code blocks, etc. in the header are preserved just like slide-level unrecognized content).
 4. **Split remainder on `---`** — divide into slide sections. A trailing `---` followed by only whitespace does not create an empty slide.
 5. **For each slide section**, extract:
    - If a `### Unrecognized content` heading (exact text) is found, everything from that heading to the end of the slide section is stored as an opaque blob (raw markdown string, excluding the heading itself). No further extraction is performed on nodes within the blob. This heading is NEVER treated as a caption.
@@ -215,7 +216,7 @@ When the app writes back a slide that contained markdown elements it didn't pars
 
 1. **Frontmatter** — write if any machine fields exist. Unknown keys preserved. `Yams.dump(sortedKeys: true)`.
 2. **Title** — write as `# Title` if present.
-3. **Project-level notes** — write back project-level content (paragraphs, images, blockquotes from the header area) if present. Preserved verbatim from parse.
+3. **Header content** — write back the header content blob verbatim if present (preserved from parse, includes any project-level notes, images, blockquotes, or other content).
 4. **For each slide**, write in order:
    - `---` separator
    - Blank line
