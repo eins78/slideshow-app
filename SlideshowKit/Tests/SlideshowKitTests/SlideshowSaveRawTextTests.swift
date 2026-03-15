@@ -205,8 +205,8 @@ struct SlideshowSaveRawTextTests {
         // Should not crash, text should be on disk as-is
         let onDisk = try String(contentsOf: slideshow.documentURL ?? dir, encoding: .utf8)
         #expect(onDisk == malformed)
-        // Parser should still produce a document (possibly with no slides)
-        #expect(slideshow.document.frontmatter.isEmpty || true)
+        // Parser is lenient — text without structure still produces a document
+        #expect(slideshow.document.frontmatter.isEmpty)
     }
 
     @MainActor

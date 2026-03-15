@@ -25,9 +25,15 @@ struct ContentView: View {
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Picker("View Mode", selection: viewModeBinding) {
-                        Image(systemName: "list.bullet").tag(ViewMode.list)
-                        Image(systemName: "square.grid.2x2").tag(ViewMode.grid)
-                        Image(systemName: "doc.plaintext").tag(ViewMode.text)
+                        Image(systemName: "list.bullet")
+                            .tag(ViewMode.list)
+                            .accessibilityLabel("List view")
+                        Image(systemName: "square.grid.2x2")
+                            .tag(ViewMode.grid)
+                            .accessibilityLabel("Grid view")
+                        Image(systemName: "doc.plaintext")
+                            .tag(ViewMode.text)
+                            .accessibilityLabel("Text view")
                     }
                     .pickerStyle(.segmented)
                     .frame(width: 120)

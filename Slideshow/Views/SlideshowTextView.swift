@@ -55,6 +55,11 @@ struct SlideshowTextView: View {
                     }
                 }
             }
+            .onDisappear {
+                if isDirty {
+                    saveTextToModel()
+                }
+            }
     }
 
     private func loadTextFromModel() {
