@@ -27,10 +27,10 @@ import QuickLook
 .quickLookPreview($quickLookURL, in: slideshow.slides.map(\.fileURL))
 ```
 
-### Trigger
+### Triggers (both required)
 
-- **Spacebar** on selected slide in the editor grid/list (when not in presentation mode)
-- Optionally: click/tap on thumbnail in preview panel
+1. **Click** on the slide preview/thumbnail image — opens QuickLook for that slide
+2. **Spacebar** when a slide is selected in the list/grid — opens QuickLook for the selected slide
 
 ### Behavior
 
@@ -66,6 +66,7 @@ import QuickLook
 - [ ] Add `import QuickLook` to the editor view
 - [ ] Add `@State private var quickLookURL: URL?` binding
 - [ ] Add `.quickLookPreview($quickLookURL, in:)` modifier
-- [ ] Wire spacebar `.onKeyPress(.space)` to set the binding (only when not in presentation mode)
-- [ ] Test: spacebar opens preview, arrow keys navigate, dismiss resets binding
+- [ ] Wire click on preview thumbnail to set the binding
+- [ ] Wire spacebar `.onKeyPress(.space)` on selected slide to set the binding
+- [ ] Test: click opens preview, spacebar opens preview, arrow keys navigate, dismiss resets binding
 - [ ] Accessibility: verify QuickLook window is accessible (system-provided, should be by default)
