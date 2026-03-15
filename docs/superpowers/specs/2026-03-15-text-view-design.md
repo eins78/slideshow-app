@@ -65,13 +65,31 @@ Modeled after TextEdit.app without adopting `NSDocument`:
 
 | Trigger | Mechanism |
 |---------|-----------|
-| Cmd+S | `.keyboardShortcut("s")` on a hidden save button or `.onKeyPress` |
+| Cmd+S | `CommandGroup(replacing: .saveItems)` in the app's `.commands` block, routed via `@FocusedValue` to the active text view. Using `.keyboardShortcut("s")` on a local button won't work reliably because `TextEditor` swallows keyboard events while it holds first responder. |
 | App deactivation | `NotificationCenter` → `NSApplication.willResignActiveNotification` |
+| Window close | `NSWindow.willCloseNotification` on the hosting window. Window close does **not** trigger `willResignActiveNotification` if the app remains active (e.g., other windows open). Must be an explicit, separate trigger. |
+| View disappear | `.onDisappear` as a safety net — saves if dirty when the view is removed from the hierarchy |
 | View mode switch | Check dirty state before switching from `.text` to `.list`/`.grid` |
 
+**Accessing the hosting window:**
+
+Do **not** use `NSApp.keyWindow` — it is unreliable in SwiftUI (popovers, alerts, and multiple windows shift key window status). Instead, use a small `NSViewRepresentable` to capture the view's actual `NSView.window` reference:
+
+```swift
+struct WindowAccessor: NSViewRepresentable {
+    @Binding var window: NSWindow?
+    func makeNSView(context: Context) -> NSView { NSView() }
+    func updateNSView(_ nsView: NSView, context: Context) {
+        DispatchQueue.main.async { window = nsView.window }
+    }
+}
+```
+
+This gives a reliable window reference for setting `isDocumentEdited`.
+
 Dirty state drives:
-- **Title bar dot:** `NSWindow.isDocumentEdited` via `NSApp.keyWindow`
-- **Save-on-deactivation:** Only saves if dirty
+- **Title bar dot:** `window?.isDocumentEdited` via the captured hosting window reference
+- **Save-on-deactivation / window close:** Only saves if dirty
 - **View mode switch:** Only parses if dirty
 
 ### Parse Error Handling
@@ -82,6 +100,13 @@ Dirty state drives:
 - Malformed YAML frontmatter → treated as plain text
 
 The raw text is always written to disk as-is — it's valid markdown regardless of how well it round-trips through the parser. If parsing produces unexpected slide structure, the user sees the effect when switching to list/grid view and can correct it in the text.
+
+### External Model Changes
+
+If the model is updated externally while the text view is active (e.g., future file watcher from PR #14, or a structural operation triggered from another view), the text buffer becomes stale:
+
+- **If not dirty:** silently refresh the text buffer from the model via `.onChange(of:)` watching a model generation counter or the slides array
+- **If dirty:** conflict — for MVP, prefer the user's in-progress edits (don't overwrite). A future enhancement could show a conflict banner.
 
 ### Structural Operations
 
