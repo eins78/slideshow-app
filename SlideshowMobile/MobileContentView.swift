@@ -61,13 +61,20 @@ private struct SlideImageView: View {
     let imageCache: ImageCache
     @State private var image: UIImage?
 
+    private var accessibilityLabel: String {
+        if let caption = slide.sidecar?.caption, !caption.isEmpty {
+            return "\(slide.displayName), \(caption)"
+        }
+        return slide.displayName
+    }
+
     var body: some View {
         Group {
             if let image {
                 Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .accessibilityLabel(slide.displayName)
+                    .accessibilityLabel(accessibilityLabel)
                     .accessibilityAddTraits(.isImage)
             } else {
                 ProgressView()
