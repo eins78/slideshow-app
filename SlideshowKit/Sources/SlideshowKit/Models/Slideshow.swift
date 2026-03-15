@@ -17,6 +17,9 @@ public final class Slideshow {
     /// Note: `document.slides` is only synced on `save()` — read `slides` for live data.
     public var document: SlideshowDocument = SlideshowDocument()
 
+    /// File presenter for detecting external changes to `slideshow.md`.
+    private var filePresenter: DocumentFilePresenter?
+
     public init(documentURL: URL? = nil) {
         self.documentURL = documentURL
     }
@@ -62,12 +65,101 @@ public final class Slideshow {
 
     // MARK: - Document persistence
 
-    /// Save the current slideshow to disk (atomic write).
-    /// Syncs slide sections back to the document before writing.
+    /// Save the current slideshow to disk via `NSFileCoordinator`.
+    /// Uses the file presenter so the presenter is NOT notified of self-writes.
+    /// When no presenter is active, `NSFileCoordinator(filePresenter: nil)` still works.
     public func save() throws {
         guard let url = documentURL else { return }
         document.slides = slides.map(\.section)
-        try SlideshowWriter().write(document, to: url)
+        let content = SlideshowWriter().write(document)
+
+        var coordinatorError: NSError?
+        var writeError: Error?
+        let coordinator = NSFileCoordinator(filePresenter: filePresenter)
+        coordinator.coordinate(
+            writingItemAt: url,
+            options: .forReplacing,
+            error: &coordinatorError
+        ) { writeURL in
+            do {
+                try content.write(to: writeURL, atomically: true, encoding: .utf8)
+            } catch {
+                writeError = error
+            }
+        }
+        if let error = writeError ?? coordinatorError { throw error }
+    }
+
+    // MARK: - File watching
+
+    /// Start watching `documentURL` for external changes.
+    /// Creates an `NSFilePresenter` and registers it with `NSFileCoordinator`.
+    public func startWatching() {
+        guard let docURL = documentURL else { return }
+        stopWatching()
+        let presenter = DocumentFilePresenter(url: docURL) { [weak self] in
+            Task { @MainActor [weak self] in
+                await self?.reload()
+            }
+        }
+        NSFileCoordinator.addFilePresenter(presenter)
+        filePresenter = presenter
+    }
+
+    /// Stop watching for external changes.
+    public func stopWatching() {
+        guard let presenter = filePresenter else { return }
+        NSFileCoordinator.removeFilePresenter(presenter)
+        filePresenter = nil
+    }
+
+    /// Reload the slideshow from disk, preserving the current selection.
+    /// Skips reload if the parsed document is unchanged.
+    public func reload() async {
+        guard let docURL = documentURL else { return }
+        let scanner = FolderScanner()
+        guard let result = try? await scanner.scan(documentURL: docURL) else { return }
+        guard let newDoc = result.document, newDoc != document else { return }
+
+        let prevFilename = selectedSlide?.section.images.first?.filename
+        let prevCaption = selectedSlide?.section.caption
+        let prevIndex = selectedIndex
+
+        document = newDoc
+        slides = result.slides
+
+        restoreSelection(
+            prevFilename: prevFilename,
+            prevCaption: prevCaption,
+            prevIndex: prevIndex
+        )
+    }
+
+    /// Restore selection after reload, using best-match strategy.
+    /// Priority: filename match → caption match → same index → first slide.
+    private func restoreSelection(
+        prevFilename: String?,
+        prevCaption: String?,
+        prevIndex: Int?
+    ) {
+        if let filename = prevFilename,
+           let match = slides.first(where: {
+               $0.section.images.first?.filename == filename
+           }) {
+            selectedSlideID = match.id
+            return
+        }
+        if let caption = prevCaption,
+           let match = slides.first(where: { $0.section.caption == caption }) {
+            selectedSlideID = match.id
+            return
+        }
+        if let idx = prevIndex, !slides.isEmpty {
+            let clampedIdx = min(idx, slides.count - 1)
+            selectedSlideID = slides[clampedIdx].id
+            return
+        }
+        selectedSlideID = slides.first?.id
     }
 
     // MARK: - Slide operations

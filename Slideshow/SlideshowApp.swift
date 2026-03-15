@@ -258,8 +258,9 @@ struct SlideshowDocumentView: View {
     }
 
     private func openSlideshow(at url: URL) async {
-        // Stop accessing the previous slideshow's security-scoped resource
-        // before starting the new one. Must balance start/stop calls.
+        // Stop watching and accessing the previous slideshow before loading a new one.
+        slideshow.stopWatching()
+        // Must balance start/stop calls for security-scoped resources.
         // See: https://developer.apple.com/documentation/foundation/url/1779698-startaccessingsecurityscopedreso
         if let oldURL = slideshow.folderURL {
             oldURL.stopAccessingSecurityScopedResource()
@@ -314,6 +315,7 @@ struct SlideshowDocumentView: View {
             if let first = result.slides.first {
                 slideshow.selectedSlideID = first.id
             }
+            slideshow.startWatching()
         } catch {
             if didStartAccessing { url.stopAccessingSecurityScopedResource() }
             scanError = error
