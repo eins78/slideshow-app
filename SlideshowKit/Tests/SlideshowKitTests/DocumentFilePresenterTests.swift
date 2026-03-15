@@ -3,48 +3,48 @@ import Foundation
 import os
 @testable import SlideshowKit
 
+// MARK: - Shared test helpers
+
+private let minimalJPEG = Data([0xFF, 0xD8, 0xFF, 0xD9])
+
+private func makeTempDir(prefix: String = "test") throws -> URL {
+    let url = FileManager.default.temporaryDirectory
+        .appending(path: "\(prefix)-\(UUID().uuidString)")
+    try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+    return url
+}
+
+private func writeImages(in dir: URL, names: [String]) throws {
+    for name in names {
+        try minimalJPEG.write(to: dir.appending(path: name))
+    }
+}
+
+private func writeMD(at url: URL, content: String) throws {
+    try content.write(to: url, atomically: true, encoding: .utf8)
+}
+
+// MARK: - DocumentFilePresenter tests
+
 @Suite("DocumentFilePresenter")
 struct DocumentFilePresenterTests {
 
-    private func makeTempDir() throws -> URL {
-        let url = FileManager.default.temporaryDirectory
-            .appending(path: "presenter-test-\(UUID().uuidString)")
-        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
-        return url
-    }
-
-    private func writeSlideshowMD(
-        in dir: URL,
-        slides slideCount: Int = 1
-    ) throws -> URL {
+    private func writeSlideshowMD(in dir: URL) throws -> URL {
         let mdURL = dir.appending(path: "slideshow.md")
-        var content = """
+        try writeMD(at: mdURL, content: """
         ---
         format: https://example.com/slideshow/v1
         ---
 
-        """
-        for i in 1...slideCount {
-            content += """
+        ---
 
-            ---
+        ### Slide 1
 
-            ### Slide \(i)
+        ![](image1.jpg)
 
-            ![](image\(i).jpg)
-
-            """
-        }
-        content += "\n---\n"
-        try content.write(to: mdURL, atomically: true, encoding: .utf8)
+        ---
+        """)
         return mdURL
-    }
-
-    private func writeImages(in dir: URL, count: Int) throws {
-        let jpeg = Data([0xFF, 0xD8, 0xFF, 0xD9])
-        for i in 1...count {
-            try jpeg.write(to: dir.appending(path: "image\(i).jpg"))
-        }
     }
 
     // MARK: - Presenter tests
@@ -145,24 +145,6 @@ struct DocumentFilePresenterTests {
 @Suite("Slideshow reload")
 @MainActor
 struct SlideshowReloadTests {
-
-    private func makeTempDir() throws -> URL {
-        let url = FileManager.default.temporaryDirectory
-            .appending(path: "reload-test-\(UUID().uuidString)")
-        try FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
-        return url
-    }
-
-    private func writeImages(in dir: URL, names: [String]) throws {
-        let jpeg = Data([0xFF, 0xD8, 0xFF, 0xD9])
-        for name in names {
-            try jpeg.write(to: dir.appending(path: name))
-        }
-    }
-
-    private func writeMD(at url: URL, content: String) throws {
-        try content.write(to: url, atomically: true, encoding: .utf8)
-    }
 
     private func loadSlideshow(mdURL: URL) async throws -> Slideshow {
         let slideshow = Slideshow()
