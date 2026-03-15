@@ -72,7 +72,7 @@ Run code in the context of any source file (access to its imports, types, even `
 ExecuteSnippet(
   tabIdentifier: "...",
   sourceFilePath: "Slideshow/Views/ContentView.swift",
-  codeSnippet: "print(UTType(\"is.kte.slideshow\")?.description ?? \"nil\")"
+  codeSnippet: "print(UTType(\"is.ars.slideshow\")?.description ?? \"nil\")"
 )
 ```
 

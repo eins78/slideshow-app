@@ -142,7 +142,7 @@ When a review repeatedly flags a deliberate design choice that we won't change, 
 - EditorPanel disk writes debounced (500ms) — critical for iCloud Drive
 - File operations (createSidecar, removeSlide, moveSlide, addImages) live on the `Slideshow` model, not in views
 - `addImages()` is incremental (no full re-scan)
-- Bundle identifier: `is.kte.slideshow`
+- Bundle identifier: `is.ars.slideshow`
 
 ### Detailed Rules
 
