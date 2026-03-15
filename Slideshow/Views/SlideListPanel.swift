@@ -34,7 +34,7 @@ struct SlideListPanel: View {
             }
             .onMove { indices, newOffset in
                 slideshow.slides.move(fromOffsets: indices, toOffset: newOffset)
-                slideshow.persistReorder()
+                try? slideshow.save()
             }
         }
         .listStyle(.inset(alternatesRowBackgrounds: true))
@@ -67,7 +67,7 @@ struct SlideListPanel: View {
                 .clipShape(RoundedRectangle(cornerRadius: 6))
                 .accessibilityHidden(true)
 
-            Text(slide.strippedFilename)
+            Text(slide.section.images.first?.displayFilename ?? slide.displayName)
                 .font(.caption)
                 .lineLimit(2)
                 .multilineTextAlignment(.center)
@@ -83,8 +83,10 @@ struct SlideListPanel: View {
 
     @ViewBuilder
     private func slideContextMenu(slide: Slide, index: Int) -> some View {
-        Button("Reveal in Finder") {
-            NSWorkspace.shared.activateFileViewerSelecting([slide.fileURL])
+        if let url = slide.primaryImageURL {
+            Button("Reveal in Finder") {
+                NSWorkspace.shared.activateFileViewerSelecting([url])
+            }
         }
 
         Divider()
@@ -93,23 +95,15 @@ struct SlideListPanel: View {
             slideshow.selectedSlideID = slide.id
         }
 
-        if slide.sidecar == nil {
-            Button("Create Sidecar File") {
-                try? slideshow.createSidecar(for: slide)
-            }
-        }
-
         Divider()
 
         Button("Move Up") {
             slideshow.moveSlide(slide, direction: -1)
-            slideshow.persistReorder()
         }
         .disabled(index == 0)
 
         Button("Move Down") {
             slideshow.moveSlide(slide, direction: 1)
-            slideshow.persistReorder()
         }
         .disabled(index == filteredSlides.count - 1)
 
@@ -122,13 +116,11 @@ struct SlideListPanel: View {
 }
 
 #Preview("Slide List — List Mode") {
-    let slideshow = Slideshow(folderURL: URL(fileURLWithPath: "/tmp/demo"))
+    let slideshow = Slideshow()
     let slides = [
-        Slide(fileURL: URL(fileURLWithPath: "/tmp/001--intro.jpg"),
-              sidecar: SidecarData(caption: "Intro")),
-        Slide(fileURL: URL(fileURLWithPath: "/tmp/002--sunset.jpg"),
-              sidecar: SidecarData(caption: "Golden hour")),
-        Slide(fileURL: URL(fileURLWithPath: "/tmp/003--portrait.jpg")),
+        Slide(section: SlideSection(caption: "Intro", images: [SlideImage(filename: "001--intro.jpg")])),
+        Slide(section: SlideSection(caption: "Golden hour", images: [SlideImage(filename: "002--sunset.jpg")])),
+        Slide(section: SlideSection(images: [SlideImage(filename: "003--portrait.jpg")])),
     ]
     for slide in slides { slide.fileSize = 2_000_000 }
     slideshow.slides = slides
@@ -138,9 +130,9 @@ struct SlideListPanel: View {
 }
 
 #Preview("Slide List — Grid Mode") {
-    let slideshow = Slideshow(folderURL: URL(fileURLWithPath: "/tmp/demo"))
+    let slideshow = Slideshow()
     let slides = (1...8).map { i in
-        Slide(fileURL: URL(fileURLWithPath: "/tmp/\(String(format: "%03d", i))--photo-\(i).jpg"))
+        Slide(section: SlideSection(images: [SlideImage(filename: "\(String(format: "%03d", i))--photo-\(i).jpg")]))
     }
     slideshow.slides = slides
     return SlideListPanel(slideshow: slideshow, viewMode: .grid)

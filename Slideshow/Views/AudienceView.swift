@@ -33,7 +33,10 @@ struct AudienceView: View {
                 imageLoaded = true
                 return
             }
-            let url = slide.fileURL
+            guard let url = slide.primaryImageURL else {
+                imageLoaded = true
+                return
+            }
             // imageCache is an actor — awaiting directly is sufficient,
             // no Task.detached needed (actor executor handles isolation)
             let image = await imageCache.fullNSImage(for: url)

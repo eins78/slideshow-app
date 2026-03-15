@@ -105,13 +105,11 @@ struct ContentView: View {
 }
 
 #Preview("Content — With Slides") {
-    let slideshow = Slideshow(folderURL: URL(fileURLWithPath: "/tmp/demo"))
+    let slideshow = Slideshow()
     let slides = [
-        Slide(fileURL: URL(fileURLWithPath: "/tmp/demo/001--intro.jpg"),
-              sidecar: SidecarData(caption: "Welcome slide", notes: "Opening remarks")),
-        Slide(fileURL: URL(fileURLWithPath: "/tmp/demo/002--sunset.jpg"),
-              sidecar: SidecarData(caption: "Golden hour", source: "© Photographer")),
-        Slide(fileURL: URL(fileURLWithPath: "/tmp/demo/003--portrait.jpg")),
+        Slide(section: SlideSection(caption: "Welcome slide", images: [SlideImage(filename: "001--intro.jpg")], notes: "Opening remarks")),
+        Slide(section: SlideSection(caption: "Golden hour", images: [SlideImage(filename: "002--sunset.jpg")], source: "© Photographer")),
+        Slide(section: SlideSection(images: [SlideImage(filename: "003--portrait.jpg")])),
     ]
     for slide in slides { slide.fileSize = 2_500_000 }
     slideshow.slides = slides

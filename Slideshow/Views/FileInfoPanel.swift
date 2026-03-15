@@ -14,7 +14,9 @@ struct FileInfoPanel: View {
                     .accessibilityAddTraits(.isHeader)
 
                 Grid(alignment: .leading, horizontalSpacing: 8, verticalSpacing: 3) {
-                    infoRow("File", slide.fileURL.lastPathComponent)
+                    if let filename = slide.section.images.first?.filename {
+                        infoRow("File", filename)
+                    }
 
                     if let size = slide.fileSize {
                         infoRow("Size", ByteCountFormatter.string(fromByteCount: size, countStyle: .file))
@@ -59,8 +61,7 @@ struct FileInfoPanel: View {
         // EXIF reading wrapped in Task.detached to avoid blocking main actor
         // See: https://developer.apple.com/documentation/imageio/cgimagesource
         .task(id: slide.id) {
-            guard slide.exif == nil else { return }
-            let url = slide.fileURL
+            guard slide.exif == nil, let url = slide.primaryImageURL else { return }
             let exif = await Task.detached {
                 EXIFReader().read(from: url)
             }.value
@@ -81,7 +82,9 @@ struct FileInfoPanel: View {
 }
 
 #Preview("File Info — with EXIF") {
-    let slide = Slide(fileURL: URL(fileURLWithPath: "/tmp/003--sunset.jpg"))
+    let slide = Slide(section: SlideSection(
+        images: [SlideImage(filename: "003--sunset.jpg")]
+    ))
     slide.fileSize = 12_500_000
     var exif = EXIFData()
     exif.cameraModel = "FUJIFILM X-T5"
@@ -99,7 +102,9 @@ struct FileInfoPanel: View {
 }
 
 #Preview("File Info — no EXIF") {
-    let slide = Slide(fileURL: URL(fileURLWithPath: "/tmp/screenshot.png"))
+    let slide = Slide(section: SlideSection(
+        images: [SlideImage(filename: "screenshot.png")]
+    ))
     slide.fileSize = 450_000
     return FileInfoPanel(slide: slide)
         .frame(width: 280, height: 200)

@@ -65,7 +65,7 @@ struct PresenterView: View {
                     HStack {
                         ScrollView {
                             VStack(alignment: .leading, spacing: 4) {
-                                if let notes = slideshow.selectedSlide?.sidecar?.notes, !notes.isEmpty {
+                                if let notes = slideshow.selectedSlide?.section.notes, !notes.isEmpty {
                                     MarkdownRenderedView(markdown: notes)
                                         .foregroundStyle(.white)
                                 }
@@ -102,8 +102,8 @@ struct PresenterView: View {
         currentImage = nil
         nextImage = nil
 
-        let currentURL = slideshow.selectedSlide?.fileURL
-        let nextURL = nextSlide?.fileURL
+        let currentURL = slideshow.selectedSlide?.primaryImageURL
+        let nextURL = nextSlide?.primaryImageURL
         let cache = imageCache
 
         async let current: NSImage? = {
@@ -126,7 +126,9 @@ struct PresenterView: View {
             for offset in 2...3 {
                 let futureIdx = idx + offset
                 guard futureIdx < slideshow.slides.count else { break }
-                urls.append(slideshow.slides[futureIdx].fileURL)
+                if let url = slideshow.slides[futureIdx].primaryImageURL {
+                    urls.append(url)
+                }
             }
             if !urls.isEmpty {
                 await imageCache.preloadThumbnails(for: urls)

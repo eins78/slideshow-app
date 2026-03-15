@@ -48,7 +48,7 @@ struct EditorPanel: View {
             }
             .padding(12)
         }
-        .onChange(of: slide.sidecar) { scheduleSave() }
+        .onChange(of: slide.section) { scheduleSave() }
     }
 
     private func scheduleSave() {
@@ -56,21 +56,19 @@ struct EditorPanel: View {
         saveTask = Task {
             try? await Task.sleep(for: .milliseconds(500))
             guard !Task.isCancelled else { return }
-            slideshow.saveSidecar(for: slide)
+            try? slideshow.save()
         }
     }
 }
 
 #Preview("Editor Panel") {
     let slideshow = Slideshow()
-    let slide = Slide(
-        fileURL: URL(fileURLWithPath: "/tmp/sunset.jpg"),
-        sidecar: SidecarData(
-            caption: "Golden hour",
-            source: "© Photographer 2024",
-            notes: "Beautiful sunset over the lake.\n\n**Key points:**\n- Warm tones\n- Reflection"
-        )
-    )
+    let slide = Slide(section: SlideSection(
+        caption: "Golden hour",
+        images: [SlideImage(filename: "sunset.jpg")],
+        source: "© Photographer 2024",
+        notes: "Beautiful sunset over the lake.\n\n**Key points:**\n- Warm tones\n- Reflection"
+    ))
     return EditorPanel(slideshow: slideshow, slide: slide)
         .frame(width: 280, height: 500)
 }

@@ -13,11 +13,11 @@ struct SlideRowView: View {
                 .frame(width: 30, alignment: .trailing)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(slide.strippedFilename)
+                Text(slide.section.images.first?.displayFilename ?? slide.displayName)
                     .font(.body)
                     .lineLimit(1)
 
-                if let caption = slide.sidecar?.caption {
+                if let caption = slide.section.caption {
                     Text(caption)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
@@ -39,10 +39,10 @@ struct SlideRowView: View {
 }
 
 #Preview("Slide Row — with caption") {
-    let slide = Slide(
-        fileURL: URL(fileURLWithPath: "/tmp/003--sunset.jpg"),
-        sidecar: SidecarData(caption: "Golden hour at the lake")
-    )
+    let slide = Slide(section: SlideSection(
+        caption: "Golden hour at the lake",
+        images: [SlideImage(filename: "003--sunset.jpg")]
+    ))
     slide.fileSize = 2_450_000
     return SlideRowView(slide: slide, index: 2)
         .frame(width: 350)
@@ -50,7 +50,9 @@ struct SlideRowView: View {
 }
 
 #Preview("Slide Row — no caption") {
-    let slide = Slide(fileURL: URL(fileURLWithPath: "/tmp/beach-photo.jpg"))
+    let slide = Slide(section: SlideSection(
+        images: [SlideImage(filename: "beach-photo.jpg")]
+    ))
     slide.fileSize = 8_100_000
     return SlideRowView(slide: slide, index: 0)
         .frame(width: 350)
