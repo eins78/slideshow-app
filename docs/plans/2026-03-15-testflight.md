@@ -43,7 +43,7 @@ Work in priority order: macOS TestFlight first, then add iPhone target.
 #### Phase 1: macOS TestFlight
 
 1. **App icon** — Add `AppIcon-final.png` to `Assets.xcassets/AppIcon.appiconset`
-   with proper `Contents.json` (or use Icon Composer .icon format per `docs/app-icon.md`)
+   with proper `Contents.json` (single 1024x1024 PNG, Xcode generates all sizes)
 2. **Version metadata** — Set `MARKETING_VERSION: "0.1.0"` and
    `CURRENT_PROJECT_VERSION: "1"` in `project.yml`, add `CFBundleShortVersionString`
    and `CFBundleVersion` to Info.plist
@@ -66,12 +66,12 @@ Work in priority order: macOS TestFlight first, then add iPhone target.
 4. **Touch interactions** — Swipe gestures for slide navigation, pinch-to-zoom
 5. **Test on device** — Verify on physical iPhone via TestFlight
 
-### Open Questions
+### Decisions
 
-- [ ] Use Icon Composer `.icon` format (Xcode 26+) or traditional multi-size PNG set?
-- [ ] App name on TestFlight: "Slideshow" or working title "Mappe"?
-- [ ] TestFlight group: internal only, or external beta testers too?
-- [ ] Should iPhone target share the same bundle ID or use a separate one?
+- [x] **Icon format:** Traditional `AppIcon.appiconset` with single 1024x1024 PNG. Liquid Glass `.icon` deferred to a future design pass.
+- [x] **App name:** "Slideshow" (working title, can change display name in App Store Connect later)
+- [x] **TestFlight group:** Internal only (up to 100 testers, no App Review required)
+- [x] **Bundle ID strategy:** Universal app — single `is.kte.slideshow` for both macOS and iPhone
 
 ## Branches
 
