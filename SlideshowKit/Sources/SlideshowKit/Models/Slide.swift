@@ -1,70 +1,63 @@
 import Foundation
 import Observation
 
-/// A single slide in a slideshow — one image with optional sidecar data.
+/// A single slide in a slideshow — a section with 0-N images plus metadata.
 /// Not @MainActor: created in background by FolderScanner, observed by views.
 /// See: https://developer.apple.com/documentation/observation/observable()#Discussion
 @Observable
 public final class Slide: Identifiable {
     public let id: UUID
-    public var fileURL: URL
-    public var sidecar: SidecarData?
+    public var section: SlideSection
     public var exif: EXIFData?
-
-    /// File size in bytes (read from filesystem).
     public var fileSize: Int64?
 
-    public init(fileURL: URL, sidecar: SidecarData? = nil) {
-        self.id = UUID()
-        self.fileURL = fileURL
-        self.sidecar = sidecar
+    /// Resolved image URLs (set by Slideshow after loading).
+    public var resolvedImageURLs: [URL] = []
+
+    public init(id: UUID = UUID(), section: SlideSection = SlideSection()) {
+        self.id = id
+        self.section = section
     }
 
-    /// Display name: caption if available, otherwise filename without prefix.
-    public var displayName: String {
-        sidecar?.caption ?? strippedFilename
+    // MARK: - Convenience
+
+    public var displayName: String { section.displayName }
+
+    public var primaryImageURL: URL? { resolvedImageURLs.first }
+
+    /// Resolve image filenames to full URLs relative to a folder.
+    /// Uses case-insensitive matching against actual files on disk.
+    public func resolveImageURLs(
+        relativeTo folderURL: URL,
+        availableFiles: [String] = []
+    ) {
+        resolvedImageURLs = section.images.map { image in
+            // Try case-insensitive match against available files
+            if !availableFiles.isEmpty,
+               let match = availableFiles.first(where: {
+                   $0.caseInsensitiveCompare(image.filename) == .orderedSame
+               }) {
+                return folderURL.appendingPathComponent(match)
+            }
+            // Fallback to direct path (macOS is case-insensitive anyway)
+            return folderURL.appendingPathComponent(image.filename)
+        }
     }
 
-    /// Filename with the app's `\d{3}--` prefix stripped.
-    public var strippedFilename: String {
-        let name = fileURL.lastPathComponent
-        let pattern = /^\d{3}--/
-        return String(name.replacing(pattern, with: ""))
-    }
+    // MARK: - Editor bindings
 
-    /// The sidecar file URL (image filename + ".md").
-    public var sidecarURL: URL {
-        fileURL.appendingPathExtension("md")
-    }
-
-    /// Whether sidecar data is currently loaded for this slide.
-    public var hasSidecar: Bool {
-        sidecar != nil
-    }
-
-    // MARK: - Bindable computed properties for EditorPanel
-    // Setters have side effects (ensureSidecar) by design — enables lazy sidecar
-    // creation when user first types in EditorPanel, avoiding empty .md file clutter.
-
-    private func ensureSidecar() {
-        if sidecar == nil { sidecar = SidecarData() }
-    }
-
-    /// Bindable caption text — creates sidecar on first write.
     public var captionText: String {
-        get { sidecar?.caption ?? "" }
-        set { ensureSidecar(); sidecar?.caption = newValue.isEmpty ? nil : newValue }
+        get { section.caption ?? "" }
+        set { section.caption = newValue.isEmpty ? nil : newValue }
     }
 
-    /// Bindable source text.
     public var sourceText: String {
-        get { sidecar?.source ?? "" }
-        set { ensureSidecar(); sidecar?.source = newValue.isEmpty ? nil : newValue }
+        get { section.source ?? "" }
+        set { section.source = newValue.isEmpty ? nil : newValue }
     }
 
-    /// Bindable notes text.
     public var notesText: String {
-        get { sidecar?.notes ?? "" }
-        set { ensureSidecar(); sidecar?.notes = newValue }
+        get { section.notes }
+        set { section.notes = newValue }
     }
 }
