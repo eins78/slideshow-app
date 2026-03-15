@@ -1,30 +1,39 @@
 import SwiftUI
 
 /// Captures the hosting `NSWindow` via `viewDidMoveToWindow()` override.
-/// Prefer this over `NSApp.keyWindow` — it returns the specific window hosting the view,
-/// which is reliable in multi-window apps. Uses a subclassed NSView to fire reliably
-/// when the view is inserted into the window hierarchy.
+/// Uses a Coordinator to avoid stale binding capture in the NSView subclass.
 struct WindowAccessor: NSViewRepresentable {
     @Binding var window: NSWindow?
 
-    final class WindowTrackingView: NSView {
-        var onWindowChange: ((NSWindow?) -> Void)?
-
-        override func viewDidMoveToWindow() {
-            super.viewDidMoveToWindow()
-            onWindowChange?(window)
-        }
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
     }
 
     func makeNSView(context: Context) -> WindowTrackingView {
         let view = WindowTrackingView()
-        view.onWindowChange = { [self] newWindow in
+        view.coordinator = context.coordinator
+        return view
+    }
+
+    func updateNSView(_ nsView: WindowTrackingView, context: Context) {
+        // Coordinator always holds the latest binding via static func update
+        context.coordinator.onWindowChange = { [self] newWindow in
             if self.window !== newWindow {
                 self.window = newWindow
             }
         }
-        return view
     }
 
-    func updateNSView(_ nsView: WindowTrackingView, context: Context) {}
+    final class Coordinator {
+        var onWindowChange: ((NSWindow?) -> Void)?
+    }
+
+    final class WindowTrackingView: NSView {
+        weak var coordinator: Coordinator?
+
+        override func viewDidMoveToWindow() {
+            super.viewDidMoveToWindow()
+            coordinator?.onWindowChange?(window)
+        }
+    }
 }
