@@ -1,26 +1,28 @@
 import Foundation
 import Observation
 
-/// The top-level document model: a folder of slides.
+/// The slideshow document model.
 /// @MainActor: created and mutated by views, owns file I/O operations.
 /// See: https://developer.apple.com/documentation/swiftui/model-data
 @MainActor
 @Observable
 public final class Slideshow {
-    /// The folder URL of the .slideshow bundle.
+    /// The project folder URL.
     public var folderURL: URL?
     /// Ordered list of slides.
     public var slides: [Slide] = []
     /// Currently selected slide ID.
     public var selectedSlideID: Slide.ID?
+    /// Optional project file parsed from `slideshow.yml` in the folder.
+    public var projectFile: ProjectFile?
 
     public init(folderURL: URL? = nil) {
         self.folderURL = folderURL
     }
 
-    /// Display name derived from the bundle name.
+    /// Display name: project file title, then folder name, then "Untitled".
     public var name: String {
-        folderURL?.deletingPathExtension().lastPathComponent ?? "Untitled"
+        projectFile?.title ?? folderURL?.lastPathComponent ?? "Untitled"
     }
 
     /// Currently selected slide.
@@ -146,5 +148,13 @@ public final class Slideshow {
                 slide.fileURL = newURL
             }
         }
+    }
+
+    /// Write the project file to the folder. Creates slideshow.yml if missing.
+    public func saveProjectFile() throws {
+        guard let folderURL else { return }
+        let writer = ProjectFileWriter()
+        let file = projectFile ?? ProjectFile()
+        try writer.write(file, to: folderURL.appending(path: ProjectFile.filename))
     }
 }
