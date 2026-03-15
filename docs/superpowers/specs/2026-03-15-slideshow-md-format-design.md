@@ -103,7 +103,7 @@ format: https://example.com/slideshow/v1
 - **Frontmatter** — optional. Contains machine-readable fields. Unknown keys are preserved on round-trip.
   - `format` — URL pointing to format documentation. Acts as a format identifier.
   - Future fields (e.g., `theme`, `aspect-ratio`) can be added without breaking older parsers.
-- **H1 heading** — optional. The presentation title. Falls back to the filename (without `.md`), then the folder name, then "Untitled."
+- **H1 heading** — optional. The presentation title. Falls back to the filename (without `.md`) unless the filename is `slideshow` (the default), then the folder name, then "Untitled."
 - Content between the H1 and the first `---` separator is project-level presenter notes (displayed on the title slide or as a preamble).
 
 #### Slide separator
@@ -169,7 +169,7 @@ Blank lines within notes are fine.
 They remain part of the notes.
 ```
 
-Paragraph nodes — text blocks that swift-markdown parses as `Paragraph` elements. This is the presenter-only content, not shown on the audience display. Non-paragraph block elements (tables, code blocks, ordered/unordered lists, HTML blocks) are NOT notes — they become unrecognized content.
+Paragraphs and lists — text blocks that swift-markdown parses as `Paragraph` or `List` elements. This is the presenter-only content, not shown on the audience display. Other non-paragraph block elements (tables, code blocks, HTML blocks) are NOT notes — they become unrecognized content.
 
 - Can contain blank lines between paragraphs (blank lines do NOT end the notes section)
 - Can contain inline markdown formatting (bold, italic, links) — preserved as-is
@@ -200,15 +200,16 @@ When the app writes back a slide that contained markdown elements it didn't pars
 
 1. **Normalize** — CRLF → LF.
 2. **Detect frontmatter** — if the file starts with `---` on line 1, scan forward for a closing `---` on its own line. If no closing delimiter is found, treat the initial `---` as a slide separator (do not invoke the YAML parser). If a closing delimiter exists, attempt to parse the enclosed text as YAML. If the YAML is valid and contains at least one key, consume both `---` delimiters (they are NOT slide separators). If the YAML is malformed or empty (e.g., the opening `---` was actually a slide separator), do NOT consume it — rewind and treat the initial `---` as the first slide separator. Missing frontmatter → valid file, just no project metadata.
-3. **Parse header** — everything between the frontmatter (or start of file) and the first remaining `---` is the header. Extract and remove the first H1 as title. The remaining header content (all AST nodes after H1 removal) is preserved verbatim as an opaque blob — this ensures no content is lost (tables, lists, code blocks, etc. in the header are preserved just like slide-level unrecognized content). The H1 is NOT included in the blob to prevent duplication on write-back.
-4. **Split remainder on `---`** — divide into slide sections. A trailing `---` followed by only whitespace does not create an empty slide.
+3. **Parse header** — everything between the frontmatter (or start of file) and the first remaining `---` is the header. If no `---` separators exist, the header is limited to the first H1 only (see "No `---` separators" edge case). Extract and remove the first H1 as title. The remaining header content (all AST nodes after H1 removal) is preserved verbatim as an opaque blob — this ensures no content is lost (tables, lists, code blocks, etc. in the header are preserved just like slide-level unrecognized content). The H1 is NOT included in the blob to prevent duplication on write-back.
+4. **Split remainder on `---`** — divide into slide sections. Empty sections (containing only whitespace) are discarded — this applies to both leading empty sections (from the first `---` after the header) and trailing empty sections (from a closing `---` at end of file).
 5. **For each slide section**, extract:
    - If a `### Unrecognized content` heading (exact text) is found, everything from that heading to the end of the slide section is stored as an opaque blob (raw markdown string, excluding the heading itself). No further extraction is performed on nodes within the blob. This heading is NEVER treated as a caption.
    - First other `### Heading` → caption
    - **Image extraction** — only from top-level `Paragraph` nodes: if a paragraph contains one or more `Image` inline nodes, extract them as image references (ordered by appearance). A paragraph that contains ONLY image nodes (and whitespace) is consumed entirely (not included in notes). A paragraph that mixes images with other text: extract the images, keep the remaining text as notes. Images inside non-paragraph blocks (tables, lists, blockquotes, code blocks) are NOT extracted — they remain in the unrecognized content blob.
    - First contiguous `> blockquote` → source/credit. Additional blockquotes → unrecognized content.
    - Remaining `Paragraph` nodes (those not fully consumed by image extraction) → presenter notes (concatenated in order, preserving blank lines between them)
-   - All other block elements (tables, code blocks, lists, HTML blocks, non-H3 headings) → unrecognized content
+   - All other block elements (tables, code blocks, HTML blocks, additional H3 headings not used as caption, and all other heading levels) → unrecognized content
+   - **Exception: lists in notes** — ordered and unordered lists (`List` nodes) that appear among presenter note paragraphs are treated as part of the notes (not unrecognized content). This supports natural markdown note-taking with bullet points.
 6. **Empty file or whitespace-only file** → valid, zero slides.
 7. **Image filename matching** — case-insensitive. `![](Photo.JPG)` matches `photo.jpg` on disk.
 
@@ -287,7 +288,7 @@ The same image can appear in multiple slides (e.g., a before/after comparison ac
 
 ### No `---` separators in file
 
-The entire file (after header) is treated as a single slide section.
+If the file has no `---` separators (after frontmatter is consumed), the header is limited to the first H1 heading only. Everything after the H1 (or everything if no H1) is treated as a single slide section. This prevents the header from greedily consuming the entire file.
 
 ### File with only frontmatter and title
 
