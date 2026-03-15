@@ -114,7 +114,7 @@ struct ContentView: View {
         } else {
             HSplitView {
                 PreviewPanel(slideshow: slideshow)
-                    .frame(minWidth: 200, idealWidth: 240)
+                    .frame(minWidth: 200, idealWidth: 240, maxWidth: 400)
 
                 SlideListPanel(
                     slideshow: slideshow,
@@ -124,7 +124,7 @@ struct ContentView: View {
                     saveTrigger: $saveTrigger,
                     hostWindow: hostWindow
                 )
-                .frame(minWidth: 300)
+                .frame(minWidth: 300, idealWidth: 500)
             }
         }
     }
