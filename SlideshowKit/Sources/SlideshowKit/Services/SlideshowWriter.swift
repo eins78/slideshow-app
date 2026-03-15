@@ -10,26 +10,21 @@ public struct SlideshowWriter: Sendable {
     public func write(_ document: SlideshowDocument) -> String {
         var output = ""
 
-        // 1. Frontmatter (always written)
+        // 1. Frontmatter (always written, includes title)
         writeFrontmatter(document, to: &output)
 
-        // 2. Title
-        if let title = document.title {
-            output += "\n# \(title)\n"
-        }
-
-        // 3. Header content
+        // 2. Header content
         if let headerContent = document.headerContent {
             output += "\n\(headerContent)\n"
         }
 
-        // 4. Separator after header (needed even with 0 slides to preserve header
+        // 3. Separator after header (needed even with 0 slides to preserve header
         //    content on round-trip — without it, header content becomes a slide)
         if !document.slides.isEmpty || document.headerContent != nil {
             output += "\n---\n"
         }
 
-        // 5. Slides
+        // 4. Slides
         for (index, slide) in document.slides.enumerated() {
             if index > 0 {
                 output += "\n---\n"
@@ -37,7 +32,7 @@ public struct SlideshowWriter: Sendable {
             writeSlide(slide, to: &output)
         }
 
-        // 6. Trailing separator
+        // 5. Trailing separator
         if !document.slides.isEmpty {
             output += "\n---\n"
         }
@@ -62,6 +57,12 @@ public struct SlideshowWriter: Sendable {
         if fields[SlideshowDocument.formatKey] == nil {
             fields[SlideshowDocument.formatKey] = SlideshowDocument.formatURL
         }
+        // Sync title into frontmatter
+        if let title = document.title {
+            fields[SlideshowDocument.titleKey] = title
+        } else {
+            fields.removeValue(forKey: SlideshowDocument.titleKey)
+        }
 
         output += "---\n"
         if let yaml = try? Yams.dump(
@@ -81,7 +82,7 @@ public struct SlideshowWriter: Sendable {
 
         // Caption
         if let caption = slide.caption {
-            let level = slide.captionLevel ?? 3
+            let level = slide.captionLevel ?? 1
             let prefix = String(repeating: "#", count: level)
             elements.append("\(prefix) \(caption)")
         }

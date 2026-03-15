@@ -24,7 +24,7 @@ struct SlideshowParserTests {
 
     @Test func missingFrontmatterIsValid() {
         let input = """
-        # My Title
+        Some intro text.
 
         ---
 
@@ -32,7 +32,7 @@ struct SlideshowParserTests {
         """
         let doc = parser.parse(input)
         #expect(doc.frontmatter.isEmpty)
-        #expect(doc.title == "My Title")
+        #expect(doc.title == nil)
     }
 
     @Test func malformedFrontmatterTreatedAsSlide() {
@@ -75,9 +75,8 @@ struct SlideshowParserTests {
         let input = """
         ---
         format: https://example.com/slideshow/v1
+        title: Paintings That Tell Secrets
         ---
-
-        # Paintings That Tell Secrets
 
         ---
 
@@ -105,9 +104,8 @@ struct SlideshowParserTests {
         let input = """
         ---
         format: https://example.com/slideshow/v1
+        title: My Title
         ---
-
-        # My Title
 
         Some introductory text.
 
@@ -405,13 +403,12 @@ struct SlideshowParserTests {
         let input = """
         ---
         format: https://example.com/slideshow/v1
+        title: Paintings That Tell Secrets
         ---
 
-        # Paintings That Tell Secrets
-
         ---
 
-        ### Golden hour, Wollishofen
+        # Golden hour, Wollishofen
 
         ![Lakeside view](golden-hour.jpg)
 
@@ -422,7 +419,7 @@ struct SlideshowParserTests {
 
         ---
 
-        ### The old bridge
+        # The old bridge
 
         ![](bridge-sunset.jpg)
 
@@ -430,7 +427,7 @@ struct SlideshowParserTests {
 
         ---
 
-        ### Introduction
+        # Introduction
 
         Welcome to this portfolio review.
 
@@ -441,6 +438,7 @@ struct SlideshowParserTests {
         #expect(doc.slides.count == 3)
 
         #expect(doc.slides[0].caption == "Golden hour, Wollishofen")
+        #expect(doc.slides[0].captionLevel == 1)
         #expect(doc.slides[0].images[0].filename == "golden-hour.jpg")
         #expect(doc.slides[0].images[0].altText == "Lakeside view")
         #expect(doc.slides[0].source?.contains("Max Albrecht") == true)
@@ -461,25 +459,59 @@ struct SlideshowParserTests {
     }
 
     @Test func normalizeCRLF() {
-        let input = "---\r\nformat: https://example.com/slideshow/v1\r\n---\r\n\r\n# Title\r\n"
+        let input = "---\r\nformat: https://example.com/slideshow/v1\r\ntitle: Title\r\n---\r\n"
         let doc = parser.parse(input)
         #expect(doc.title == "Title")
     }
 
     @Test func noSeparatorsIsSingleSlide() {
         let input = """
-        # Title
-
-        ### Caption
+        # Caption
 
         ![](photo.jpg)
 
         Notes here.
         """
         let doc = parser.parse(input)
-        #expect(doc.title == "Title")
+        #expect(doc.title == nil)
         #expect(doc.slides.count == 1)
         #expect(doc.slides[0].caption == "Caption")
+        #expect(doc.slides[0].captionLevel == 1)
+    }
+
+    @Test func h1InBodyIsNotTitle() {
+        let input = """
+        ---
+        format: https://example.com/slideshow/v1
+        ---
+
+        # Some Heading
+
+        ---
+
+        ### Slide 1
+        """
+        let doc = parser.parse(input)
+        #expect(doc.title == nil)
+        #expect(doc.headerContent?.contains("Some Heading") == true)
+    }
+
+    @Test func titleFromFrontmatterWithH1InBody() {
+        let input = """
+        ---
+        format: https://example.com/slideshow/v1
+        title: Real Title
+        ---
+
+        # Not The Title
+
+        ---
+
+        ### Slide 1
+        """
+        let doc = parser.parse(input)
+        #expect(doc.title == "Real Title")
+        #expect(doc.headerContent?.contains("Not The Title") == true)
     }
 
     @Test func parsesAngleBracketFilename() {

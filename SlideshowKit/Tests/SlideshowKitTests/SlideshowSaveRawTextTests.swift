@@ -101,9 +101,8 @@ struct SlideshowSaveRawTextTests {
         let original = """
         ---
         format: https://example.com/slideshow/v1
+        title: Original Title
         ---
-
-        # Original Title
 
         ---
 
@@ -120,19 +119,18 @@ struct SlideshowSaveRawTextTests {
         let edited = """
         ---
         format: https://example.com/slideshow/v1
+        title: New Title
         ---
 
-        # New Title
-
         ---
 
-        ### First
+        # First
 
         ![](a.jpg)
 
         ---
 
-        ### Second
+        # Second
 
         ![](b.jpg)
 

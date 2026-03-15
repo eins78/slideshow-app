@@ -8,6 +8,9 @@ public struct SlideshowDocument: Equatable, Sendable {
     /// Frontmatter key used for format identification.
     public static let formatKey = "format"
 
+    /// Frontmatter key for the presentation title.
+    public static let titleKey = "title"
+
     /// Default filename when creating a new slideshow.
     public static let defaultFilename = "slideshow.md"
 
@@ -20,11 +23,11 @@ public struct SlideshowDocument: Equatable, Sendable {
     /// YAML frontmatter fields. Always includes `format` key on write.
     public var frontmatter: [String: String]
 
-    /// Presentation title (from first H1 heading).
+    /// Presentation title (from `title` frontmatter key).
     public var title: String?
 
-    /// Opaque markdown blob from the header area (between H1 and first ---).
-    /// Preserved verbatim on round-trip. Nil if no header content beyond the title.
+    /// Opaque markdown blob from the header area (between frontmatter and first ---).
+    /// Preserved verbatim on round-trip. Nil if no header content.
     public var headerContent: String?
 
     /// Ordered slide sections.

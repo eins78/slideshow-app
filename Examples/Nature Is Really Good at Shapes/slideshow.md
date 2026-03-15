@@ -1,12 +1,11 @@
 ---
 format: https://example.com/slideshow/v1
+title: Nature Is Really Good at Shapes
 ---
 
-# Nature Is Really Good at Shapes
-
 ---
 
-### Orchidae (Orchids)
+# Orchidae (Orchids)
 
 ![](orchids.jpg)
 
@@ -25,7 +24,7 @@ nature is the best designer. He drew 100 plates like this.
 
 ---
 
-### Trochilidae (Hummingbirds)
+# Trochilidae (Hummingbirds)
 
 ![](hummingbirds.jpg)
 
@@ -45,7 +44,7 @@ grand finale because they’re basically nature showing off.
 
 ---
 
-### Chelonia (Turtles)
+# Chelonia (Turtles)
 
 ![](turtles.jpg)
 
