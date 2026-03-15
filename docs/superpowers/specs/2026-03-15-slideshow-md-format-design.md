@@ -200,21 +200,21 @@ When the app writes back a slide that contained markdown elements it didn't pars
 
 1. **Normalize** — CRLF → LF.
 2. **Detect frontmatter** — if the file starts with `---` on line 1, scan forward for a closing `---` on its own line. If no closing delimiter is found, treat the initial `---` as a slide separator (do not invoke the YAML parser). If a closing delimiter exists, attempt to parse the enclosed text as YAML. If the YAML is valid and contains at least one key, consume both `---` delimiters (they are NOT slide separators). If the YAML is malformed or empty (e.g., the opening `---` was actually a slide separator), do NOT consume it — rewind and treat the initial `---` as the first slide separator. Missing frontmatter → valid file, just no project metadata.
-3. **Parse header** — everything between the frontmatter (or start of file) and the first remaining `---` is the header. Extract the first H1 as title. The entire remaining header content (all AST nodes) is preserved verbatim as an opaque blob — this ensures no content is lost (tables, lists, code blocks, etc. in the header are preserved just like slide-level unrecognized content).
+3. **Parse header** — everything between the frontmatter (or start of file) and the first remaining `---` is the header. Extract and remove the first H1 as title. The remaining header content (all AST nodes after H1 removal) is preserved verbatim as an opaque blob — this ensures no content is lost (tables, lists, code blocks, etc. in the header are preserved just like slide-level unrecognized content). The H1 is NOT included in the blob to prevent duplication on write-back.
 4. **Split remainder on `---`** — divide into slide sections. A trailing `---` followed by only whitespace does not create an empty slide.
 5. **For each slide section**, extract:
    - If a `### Unrecognized content` heading (exact text) is found, everything from that heading to the end of the slide section is stored as an opaque blob (raw markdown string, excluding the heading itself). No further extraction is performed on nodes within the blob. This heading is NEVER treated as a caption.
    - First other `### Heading` → caption
-   - All `![alt](file)` → image references (ordered by appearance)
+   - **Image extraction** — only from top-level `Paragraph` nodes: if a paragraph contains one or more `Image` inline nodes, extract them as image references (ordered by appearance). A paragraph that contains ONLY image nodes (and whitespace) is consumed entirely (not included in notes). A paragraph that mixes images with other text: extract the images, keep the remaining text as notes. Images inside non-paragraph blocks (tables, lists, blockquotes, code blocks) are NOT extracted — they remain in the unrecognized content blob.
    - First contiguous `> blockquote` → source/credit. Additional blockquotes → unrecognized content.
-   - All `Paragraph` nodes (per swift-markdown) → presenter notes (concatenated in order, preserving blank lines between them)
+   - Remaining `Paragraph` nodes (those not fully consumed by image extraction) → presenter notes (concatenated in order, preserving blank lines between them)
    - All other block elements (tables, code blocks, lists, HTML blocks, non-H3 headings) → unrecognized content
 6. **Empty file or whitespace-only file** → valid, zero slides.
 7. **Image filename matching** — case-insensitive. `![](Photo.JPG)` matches `photo.jpg` on disk.
 
 #### Writing
 
-1. **Frontmatter** — write if any machine fields exist. Unknown keys preserved. `Yams.dump(sortedKeys: true)`.
+1. **Frontmatter** — ALWAYS write frontmatter with at least the `format` key. This ensures the file never starts with a bare `---` that could be misinterpreted as a slide separator on re-read. Unknown keys preserved. `Yams.dump(sortedKeys: true)`.
 2. **Title** — write as `# Title` if present.
 3. **Header content** — write back the header content blob verbatim if present (preserved from parse, includes any project-level notes, images, blockquotes, or other content).
 4. **For each slide**, write in order:
