@@ -4,9 +4,15 @@
 
 ## Status
 
-- **Phase:** Draft
+- **Phase:** Approved
 - **Type:** infra
 - **Sprint:** <!-- optional, filled when plan is added to a sprint -->
+
+## Approval
+
+- **Approved:** 2026-03-15T13:00:16Z
+- **Approved by:** eins78
+- **Assignee:** eins78
 
 ## Changelog
 
