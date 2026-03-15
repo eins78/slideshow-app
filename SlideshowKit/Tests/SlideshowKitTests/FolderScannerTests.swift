@@ -12,80 +12,113 @@ struct FolderScannerTests {
         return fixtureURL
     }
 
-    @Test("Scans folder and finds all images")
-    func findsAllImages() async throws {
-        let slides = try await scanner.scan(folderURL: fixtureURL())
-        #expect(slides.count == 3)
+    // MARK: - Folder with slideshow.md
+
+    @Test func scansFixtureFolder() async throws {
+        let result = try await scanner.scan(folderURL: fixtureURL())
+        // slideshow.md references 3 slides
+        #expect(result.slides.count == 3)
+        #expect(result.document != nil)
+        #expect(result.documentURL != nil)
     }
 
-    @Test("Sorts slides alphabetically by filename")
-    func sortsByFilename() async throws {
-        let slides = try await scanner.scan(folderURL: fixtureURL())
-        let names = slides.map { $0.fileURL.lastPathComponent }
-        #expect(names == ["001--intro.jpg", "002--sunset.jpg", "003--portrait.jpg"])
+    @Test func parsesDocumentTitle() async throws {
+        let result = try await scanner.scan(folderURL: fixtureURL())
+        #expect(result.document?.title == "Test Slideshow")
     }
 
-    @Test("Matches sidecar to image")
-    func matchesSidecar() async throws {
-        let slides = try await scanner.scan(folderURL: fixtureURL())
-        let sunset = slides.first { $0.fileURL.lastPathComponent.contains("sunset") }
-        #expect(sunset?.sidecar?.caption == "Golden hour")
+    @Test func slideHasCaption() async throws {
+        let result = try await scanner.scan(folderURL: fixtureURL())
+        let sunset = result.slides.first { $0.section.caption == "Golden hour" }
+        #expect(sunset != nil)
     }
 
-    @Test("Images without sidecar have nil sidecar")
-    func noSidecar() async throws {
-        let slides = try await scanner.scan(folderURL: fixtureURL())
-        let intro = slides.first { $0.fileURL.lastPathComponent.contains("intro") }
-        #expect(intro?.sidecar == nil)
+    @Test func slideHasResolvedImageURL() async throws {
+        let result = try await scanner.scan(folderURL: fixtureURL())
+        let firstSlide = try #require(result.slides.first)
+        #expect(firstSlide.primaryImageURL != nil)
     }
 
-    @Test("Ignores non-image files")
-    func ignoresNonImages() async throws {
-        let slides = try await scanner.scan(folderURL: fixtureURL())
-        let mdSlides = slides.filter { $0.fileURL.pathExtension == "md" }
+    @Test func slideMdNotCountedAsSlide() async throws {
+        let result = try await scanner.scan(folderURL: fixtureURL())
+        let mdSlides = result.slides.filter {
+            $0.section.images.first?.filename.hasSuffix(".md") == true
+        }
         #expect(mdSlides.isEmpty)
     }
 
-    // MARK: - scanWithProjectFile
+    // MARK: - Folder without slideshow.md
 
-    @Test("scanWithProjectFile returns parsed project file")
-    func scanWithProjectFileReturnsProjectFile() async throws {
-        let result = try await scanner.scanWithProjectFile(folderURL: fixtureURL())
-        #expect(result.projectFile?.title == "Test Slideshow")
-        #expect(result.projectFile?.version == 1)
+    @Test func folderWithoutSlideshowMDFallsBack() async throws {
+        let tmpDir = FileManager.default.temporaryDirectory
+            .appending(path: "scanner-no-md-\(UUID())")
+        try FileManager.default.createDirectory(at: tmpDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tmpDir) }
+
+        // Create minimal JPEG files
+        let jpeg = Data([0xFF, 0xD8, 0xFF, 0xD9])
+        try jpeg.write(to: tmpDir.appending(path: "alpha.jpg"))
+        try jpeg.write(to: tmpDir.appending(path: "beta.jpg"))
+
+        let result = try await scanner.scan(folderURL: tmpDir)
+        #expect(result.slides.count == 2)
+        #expect(result.document == nil)
+        #expect(result.documentURL == nil)
     }
 
-    @Test("scanWithProjectFile returns nil project file when missing")
-    func scanWithProjectFileReturnsNilWhenMissing() async throws {
-        // Create a temp folder without slideshow.yml
+    @Test func fallbackSortsByFilename() async throws {
         let tmpDir = FileManager.default.temporaryDirectory
-            .appending(path: "scanner-no-project-\(UUID())")
+            .appending(path: "scanner-sort-\(UUID())")
         try FileManager.default.createDirectory(at: tmpDir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: tmpDir) }
 
         let jpeg = Data([0xFF, 0xD8, 0xFF, 0xD9])
-        try jpeg.write(to: tmpDir.appending(path: "photo.jpg"))
+        try jpeg.write(to: tmpDir.appending(path: "charlie.jpg"))
+        try jpeg.write(to: tmpDir.appending(path: "alpha.jpg"))
+        try jpeg.write(to: tmpDir.appending(path: "bravo.jpg"))
 
-        let result = try await scanner.scanWithProjectFile(folderURL: tmpDir)
-        #expect(result.projectFile == nil)
-        #expect(result.slides.count == 1)
+        let result = try await scanner.scan(folderURL: tmpDir)
+        let names = result.slides.compactMap { $0.section.images.first?.filename }
+        #expect(names == ["alpha.jpg", "bravo.jpg", "charlie.jpg"])
     }
 
-    @Test("slideshow.yml is not counted as slide or sidecar")
-    func projectFileNotCountedAsSlideOrSidecar() async throws {
-        let result = try await scanner.scanWithProjectFile(folderURL: fixtureURL())
-        // test-slideshow has 3 images — slideshow.yml must not inflate the count
+    // MARK: - Direct document URL
+
+    @Test func scanFromDocumentURL() async throws {
+        let mdURL = try fixtureURL().appending(path: "slideshow.md")
+        let result = try await scanner.scan(documentURL: mdURL)
         #expect(result.slides.count == 3)
-        let ymlSlides = result.slides.filter {
-            $0.fileURL.lastPathComponent == ProjectFile.filename
-        }
-        #expect(ymlSlides.isEmpty)
+        #expect(result.documentURL == mdURL)
     }
 
-    @Test("Existing scan() still returns same slides")
-    func existingScanStillWorks() async throws {
-        let slides = try await scanner.scan(folderURL: fixtureURL())
-        let result = try await scanner.scanWithProjectFile(folderURL: fixtureURL())
-        #expect(slides.count == result.slides.count)
+    // MARK: - Available images
+
+    @Test func tracksUnreferencedImages() async throws {
+        let tmpDir = FileManager.default.temporaryDirectory
+            .appending(path: "scanner-available-\(UUID())")
+        try FileManager.default.createDirectory(at: tmpDir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: tmpDir) }
+
+        let jpeg = Data([0xFF, 0xD8, 0xFF, 0xD9])
+        try jpeg.write(to: tmpDir.appending(path: "used.jpg"))
+        try jpeg.write(to: tmpDir.appending(path: "unused.jpg"))
+
+        let md = """
+        ---
+        format: https://example.com/slideshow/v1
+        ---
+
+        ---
+
+        ![](used.jpg)
+
+        ---
+        """
+        try md.write(to: tmpDir.appending(path: "slideshow.md"), atomically: true, encoding: .utf8)
+
+        let result = try await scanner.scan(folderURL: tmpDir)
+        #expect(result.slides.count == 1)
+        #expect(result.availableImages.count == 1)
+        #expect(result.availableImages[0].lastPathComponent == "unused.jpg")
     }
 }
