@@ -1,6 +1,6 @@
 # Slideshow
 
-A native macOS app for presenting image-heavy slideshows. Point it at a `.slideshow` bundle (a folder of images with optional markdown sidecar files) and present.
+A native macOS app for presenting image-heavy slideshows. Point it at any folder of images (with optional markdown sidecar files and `slideshow.yml` project file) and present.
 
 Built for photography portfolio reviews and art critiques.
 

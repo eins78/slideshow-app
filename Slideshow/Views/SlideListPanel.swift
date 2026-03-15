@@ -122,7 +122,7 @@ struct SlideListPanel: View {
 }
 
 #Preview("Slide List — List Mode") {
-    let slideshow = Slideshow(folderURL: URL(fileURLWithPath: "/tmp/demo.slideshow"))
+    let slideshow = Slideshow(folderURL: URL(fileURLWithPath: "/tmp/demo"))
     let slides = [
         Slide(fileURL: URL(fileURLWithPath: "/tmp/001--intro.jpg"),
               sidecar: SidecarData(caption: "Intro")),
@@ -138,7 +138,7 @@ struct SlideListPanel: View {
 }
 
 #Preview("Slide List — Grid Mode") {
-    let slideshow = Slideshow(folderURL: URL(fileURLWithPath: "/tmp/demo.slideshow"))
+    let slideshow = Slideshow(folderURL: URL(fileURLWithPath: "/tmp/demo"))
     let slides = (1...8).map { i in
         Slide(fileURL: URL(fileURLWithPath: "/tmp/\(String(format: "%03d", i))--photo-\(i).jpg"))
     }

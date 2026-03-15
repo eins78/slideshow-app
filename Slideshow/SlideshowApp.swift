@@ -1,5 +1,4 @@
 import SwiftUI
-import UniformTypeIdentifiers
 import SlideshowKit
 
 private struct ImageCacheKey: EnvironmentKey {
@@ -41,7 +40,7 @@ struct SlideshowApp: App {
         .windowToolbarStyle(.unified)
         .commands {
             CommandGroup(after: .newItem) {
-                Button("New Slideshow...") {
+                Button("New Project...") {
                     createNewSlideshow?.wrappedValue = true
                 }
                 .keyboardShortcut("n")
@@ -94,7 +93,7 @@ struct SlideshowDocumentView: View {
         }
         .fileImporter(
             isPresented: $showFileImporter,
-            allowedContentTypes: [.folder, UTType("is.kte.slideshow") ?? .folder],
+            allowedContentTypes: [.folder],
             allowsMultipleSelection: false
         ) { result in
             if case .success(let urls) = result, let url = urls.first {
@@ -120,13 +119,21 @@ struct SlideshowDocumentView: View {
     }
 
     private func createNewSlideshow() {
-        let panel = NSSavePanel()
-        panel.allowedContentTypes = [UTType("is.kte.slideshow") ?? .folder]
-        panel.nameFieldStringValue = "Untitled.slideshow"
+        let panel = NSOpenPanel()
+        panel.canCreateDirectories = true
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.prompt = "Create"
+        panel.message = "Choose or create a folder for your slideshow"
         panel.begin { response in
             guard response == .OK, let url = panel.url else { return }
-            try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
-            Task { await openSlideshow(at: url) }
+            Task {
+                await openSlideshow(at: url)
+                if slideshow.projectFile == nil {
+                    slideshow.projectFile = ProjectFile()
+                    try? slideshow.saveProjectFile()
+                }
+            }
         }
     }
 
@@ -181,7 +188,7 @@ struct SlideshowDocumentView: View {
         // Use Examples from the source tree (resolved via #filePath)
         let sourceExample = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent()
-            .appending(path: "Examples/Paintings That Tell Secrets.slideshow")
+            .appending(path: "Examples/Paintings That Tell Secrets")
 
         if fm.fileExists(atPath: sourceExample.path(percentEncoded: false)) {
             try? fm.copyItem(at: sourceExample, to: tmpDir)
@@ -216,7 +223,7 @@ struct SlideshowDocumentView: View {
         // Find example images from the source tree
         let examplesDir = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent().deletingLastPathComponent()
-            .appending(path: "Examples/Paintings That Tell Secrets.slideshow")
+            .appending(path: "Examples/Paintings That Tell Secrets")
 
         // Mirrors FolderScanner.imageExtensions — kept inline since that set is private
         let imageExtensions: Set<String> = [
@@ -252,10 +259,11 @@ struct SlideshowDocumentView: View {
 
         let scanner = FolderScanner()
         do {
-            let slides = try await scanner.scan(folderURL: url)
+            let result = try await scanner.scanWithProjectFile(folderURL: url)
             slideshow.folderURL = url
-            slideshow.slides = slides
-            if let first = slides.first {
+            slideshow.slides = result.slides
+            slideshow.projectFile = result.projectFile
+            if let first = result.slides.first {
                 slideshow.selectedSlideID = first.id
             }
         } catch {

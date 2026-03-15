@@ -1,5 +1,5 @@
 #!/bin/bash
-# Regenerate example .slideshow bundles from public domain sources.
+# Regenerate example slideshow folders from public domain sources.
 # All images are public domain (NASA/US Gov, Rijksmuseum CC0, Wikimedia PD).
 # Requires: curl, sips (macOS built-in)
 set -euo pipefail
@@ -35,7 +35,7 @@ write_sidecar() {
 # 1. My Favorite Space Pictures (NASA, public domain)
 # =============================================================================
 echo "=== My Favorite Space Pictures ==="
-SPACE="$SCRIPT_DIR/My Favorite Space Pictures.slideshow"
+SPACE="$SCRIPT_DIR/My Favorite Space Pictures"
 mkdir -p "$SPACE"
 
 download_and_resize "https://images-assets.nasa.gov/image/as17-148-22727/as17-148-22727~large.jpg" "$SPACE/001--blue-marble.jpg"
@@ -207,7 +207,7 @@ far from the Sun.'
 # 2. Paintings That Tell Secrets (Rijksmuseum CC0 + Wikimedia PD)
 # =============================================================================
 echo "=== Paintings That Tell Secrets ==="
-PAINT="$SCRIPT_DIR/Paintings That Tell Secrets.slideshow"
+PAINT="$SCRIPT_DIR/Paintings That Tell Secrets"
 mkdir -p "$PAINT"
 
 download_and_resize "https://iiif.micr.io/PJEZO/full/2000,/0/default.jpg" "$PAINT/001--night-watch.jpg"
@@ -268,7 +268,7 @@ painted real math without knowing it.'
 # 3. Nature Is Really Good at Shapes (Haeckel 1904, public domain)
 # =============================================================================
 echo "=== Nature Is Really Good at Shapes ==="
-NATURE="$SCRIPT_DIR/Nature Is Really Good at Shapes.slideshow"
+NATURE="$SCRIPT_DIR/Nature Is Really Good at Shapes"
 mkdir -p "$NATURE"
 
 download_and_resize "https://upload.wikimedia.org/wikipedia/commons/2/21/Haeckel_Orchidae.jpg" "$NATURE/001--orchids.jpg"
@@ -327,4 +327,4 @@ geometry hasn'\''t changed because it already works perfectly.'
 
 echo ""
 echo "Done! Total size:"
-du -sh "$SCRIPT_DIR"/*.slideshow
+du -sh "$SPACE" "$PAINT" "$NATURE"
