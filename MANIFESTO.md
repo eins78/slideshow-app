@@ -20,6 +20,12 @@ Design authority for all conceptual decisions. When in doubt, the manifesto wins
 
 8. **Everything degrades gracefully.** Missing project file = folder name as title. Missing sidecar = image-only slide. Malformed YAML = plain text fallback. The app never refuses to open a valid folder of images.
 
+## For Visual Storytellers
+
+This app is for **visual storytellers** — photographers, curators, art critics. The user's story begins with a collection of images, trimmed down to a curated sub-selection in a specific order. Text (captions, notes) is added to support the images, not the other way around.
+
+Compare with iA Presenter: it serves writers and storytellers whose workflow begins with writing text, then splitting it into slides. Our workflow begins with images, then adds structure and narrative around them.
+
 ## The Checklist
 
 Every design decision must pass all eight questions. If it fails any, reconsider.
