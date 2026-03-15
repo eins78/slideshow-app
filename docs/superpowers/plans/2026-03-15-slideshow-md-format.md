@@ -727,16 +727,10 @@ public struct SlideshowParser: Sendable {
 
         if hasNonImageContent {
             // Mixed paragraph — extract images, return remaining text.
-            // Re-render the full paragraph and strip image syntax via regex
-            // to preserve inter-element whitespace.
-            var text = nodeToMarkdown(paragraph)
-            // Remove markdown image references: ![...](...)
-            text = text.replacingOccurrences(
-                of: #"!\[[^\]]*\]\([^)]*\)"#,
-                with: "",
-                options: .regularExpression
-            )
-            text = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            // Build a new Paragraph from non-Image children to preserve whitespace.
+            let nonImageChildren = paragraph.children.filter { !($0 is Image) }
+            let rebuilt = Paragraph(nonImageChildren.map { $0 as! any InlineMarkup })
+            let text = rebuilt.format().trimmingCharacters(in: .whitespacesAndNewlines)
             return (images, text.isEmpty ? nil : text)
         }
 
@@ -748,9 +742,7 @@ public struct SlideshowParser: Sendable {
 
     /// Render an AST node back to markdown string.
     private func nodeToMarkdown(_ node: any Markup) -> String {
-        var formatter = MarkupFormatter()
-        formatter.visit(node)
-        return formatter.result
+        node.format()
     }
 
     /// Extract plain text from a blockquote (stripping `> ` prefixes).
@@ -1968,7 +1960,7 @@ public final class Slideshow {
         if let title = document.title, !title.isEmpty { return title }
         if let docURL = documentURL {
             let filename = docURL.deletingPathExtension().lastPathComponent
-            if filename != "slideshow" { return filename }
+            if filename.lowercased() != "slideshow" { return filename }
         }
         return folderURL?.lastPathComponent ?? "Untitled"
     }
