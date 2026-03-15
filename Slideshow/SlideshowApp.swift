@@ -19,10 +19,23 @@ struct CreateNewSlideshowKey: FocusedValueKey {
     typealias Value = Binding<Bool>
 }
 
+/// FocusedValue for routing Cmd+S to the active document's save action.
+/// TextEditor swallows Cmd+S at the NSTextView responder chain level,
+/// so we intercept it via CommandGroup(replacing: .saveItem) instead.
+/// See: https://developer.apple.com/documentation/swiftui/commandgroup
+struct SaveActionKey: FocusedValueKey {
+    typealias Value = () -> Void
+}
+
 extension FocusedValues {
     var createNewSlideshow: Binding<Bool>? {
         get { self[CreateNewSlideshowKey.self] }
         set { self[CreateNewSlideshowKey.self] = newValue }
+    }
+
+    var saveAction: (() -> Void)? {
+        get { self[SaveActionKey.self] }
+        set { self[SaveActionKey.self] = newValue }
     }
 }
 
@@ -30,6 +43,7 @@ extension FocusedValues {
 struct SlideshowApp: App {
     private let imageCache = ImageCache()
     @FocusedValue(\.createNewSlideshow) private var createNewSlideshow
+    @FocusedValue(\.saveAction) private var saveAction
 
     var body: some Scene {
         WindowGroup {
@@ -44,6 +58,14 @@ struct SlideshowApp: App {
                     createNewSlideshow?.wrappedValue = true
                 }
                 .keyboardShortcut("n")
+            }
+
+            CommandGroup(replacing: .saveItem) {
+                Button("Save") {
+                    saveAction?()
+                }
+                .keyboardShortcut("s")
+                .disabled(saveAction == nil)
             }
         }
 

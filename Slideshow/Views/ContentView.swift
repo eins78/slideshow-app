@@ -4,28 +4,40 @@ import SlideshowKit
 struct ContentView: View {
     @Bindable var slideshow: Slideshow
     @Binding var showPresenter: Bool
-    @State private var showInspector = true
     @State private var viewMode: ViewMode = .list
     @State private var searchText = ""
     @State private var showImageImporter = false
+    @State private var isTextDirty = false
+    @State private var saveTrigger = false
+    @State private var pendingViewMode: ViewMode?
+    @State private var hostWindow: NSWindow?
 
     enum ViewMode: String, CaseIterable {
-        case list, grid
+        case list, grid, text
     }
 
     var body: some View {
         mainContent
+            .background(WindowAccessor(window: $hostWindow))
             .navigationTitle(slideshow.name)
             .navigationSubtitle("\(slideshow.slides.count) slides")
             .searchable(text: $searchText, prompt: "Filter slides")
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    Picker("View Mode", selection: $viewMode) {
-                        Image(systemName: "list.bullet").tag(ViewMode.list)
-                        Image(systemName: "square.grid.2x2").tag(ViewMode.grid)
+                    Picker("View Mode", selection: viewModeBinding) {
+                        Image(systemName: "list.bullet")
+                            .tag(ViewMode.list)
+                            .accessibilityLabel("List view")
+                        Image(systemName: "square.grid.2x2")
+                            .tag(ViewMode.grid)
+                            .accessibilityLabel("Grid view")
+                        Image(systemName: "doc.plaintext")
+                            .tag(ViewMode.text)
+                            .accessibilityLabel("Text view")
                     }
                     .pickerStyle(.segmented)
-                    .frame(width: 80)
+                    .frame(width: 120)
+                    .accessibilityLabel("View Mode")
                 }
 
                 ToolbarItem(placement: .automatic) {
@@ -44,15 +56,8 @@ struct ContentView: View {
                     .accessibilityIdentifier("addImagesButton")
                     .keyboardShortcut("i", modifiers: [.command, .shift])
                 }
-
-                ToolbarItem(placement: .automatic) {
-                    Button("Inspector", systemImage: "sidebar.trailing") {
-                        showInspector.toggle()
-                    }
-                    .accessibilityLabel("Toggle Inspector")
-                    .keyboardShortcut("i", modifiers: [.command, .option])
-                }
             }
+            .focusedSceneValue(\.saveAction, saveAction)
             .fileImporter(
                 isPresented: $showImageImporter,
                 allowedContentTypes: [.image],
@@ -62,6 +67,37 @@ struct ContentView: View {
                     slideshow.addImages(from: urls)
                 }
             }
+            .onChange(of: isTextDirty) {
+                if !isTextDirty, let pending = pendingViewMode {
+                    viewMode = pending
+                    pendingViewMode = nil
+                }
+            }
+    }
+
+    /// Binding that intercepts mode switches away from `.text` when dirty.
+    private var viewModeBinding: Binding<ViewMode> {
+        Binding(
+            get: { viewMode },
+            set: { newMode in
+                if viewMode == .text && newMode != .text && isTextDirty {
+                    pendingViewMode = newMode
+                    saveTrigger = true
+                } else {
+                    viewMode = newMode
+                }
+            }
+        )
+    }
+
+    private var saveAction: () -> Void {
+        {
+            if viewMode == .text {
+                saveTrigger = true
+            } else {
+                try? slideshow.save()
+            }
+        }
     }
 
     @ViewBuilder
@@ -80,21 +116,16 @@ struct ContentView: View {
                 PreviewPanel(slideshow: slideshow)
                     .frame(minWidth: 200, idealWidth: 240)
 
-                SlideListPanel(slideshow: slideshow, viewMode: viewMode, searchText: searchText)
-                    .frame(minWidth: 300)
+                SlideListPanel(
+                    slideshow: slideshow,
+                    viewMode: viewMode,
+                    searchText: searchText,
+                    isDirty: $isTextDirty,
+                    saveTrigger: $saveTrigger,
+                    hostWindow: hostWindow
+                )
+                .frame(minWidth: 300)
             }
-            .inspector(isPresented: $showInspector) {
-                if let slide = slideshow.selectedSlide {
-                    VStack(spacing: 0) {
-                        EditorPanel(slideshow: slideshow, slide: slide)
-                        Divider()
-                        FileInfoPanel(slide: slide)
-                    }
-                } else {
-                    ContentUnavailableView("No Slide Selected", systemImage: "photo")
-                }
-            }
-            .inspectorColumnWidth(min: 220, ideal: 280, max: 400)
         }
     }
 }
@@ -108,7 +139,7 @@ struct ContentView: View {
     let slideshow = Slideshow()
     let slides = [
         Slide(section: SlideSection(caption: "Welcome slide", images: [SlideImage(filename: "001--intro.jpg")], notes: "Opening remarks")),
-        Slide(section: SlideSection(caption: "Golden hour", images: [SlideImage(filename: "002--sunset.jpg")], source: "© Photographer")),
+        Slide(section: SlideSection(caption: "Golden hour", images: [SlideImage(filename: "002--sunset.jpg")], source: "\u{00A9} Photographer")),
         Slide(section: SlideSection(images: [SlideImage(filename: "003--portrait.jpg")])),
     ]
     for slide in slides { slide.fileSize = 2_500_000 }

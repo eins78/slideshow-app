@@ -62,7 +62,7 @@ private struct SlideImageView: View {
     @State private var image: UIImage?
 
     private var accessibilityLabel: String {
-        if let caption = slide.sidecar?.caption, !caption.isEmpty {
+        if let caption = slide.section.caption, !caption.isEmpty {
             return "\(slide.displayName), \(caption)"
         }
         return slide.displayName
@@ -83,10 +83,11 @@ private struct SlideImageView: View {
             }
         }
         .task(id: slide.id) {
-            image = await imageCache.fullUIImage(for: slide.fileURL)
+            guard let url = slide.primaryImageURL else { return }
+            image = await imageCache.fullUIImage(for: url)
         }
         .overlay(alignment: .bottom) {
-            if let caption = slide.sidecar?.caption, !caption.isEmpty {
+            if let caption = slide.section.caption, !caption.isEmpty {
                 Text(caption)
                     .font(.caption)
                     .padding(.horizontal, 12)
@@ -128,7 +129,8 @@ private struct ThumbnailView: View {
         .accessibilityAddTraits([.isImage, .isButton])
         .accessibilityAddTraits(isSelected ? .isSelected : [])
         .task(id: slide.id) {
-            thumbnail = await imageCache.thumbnailUIImage(for: slide.fileURL)
+            guard let url = slide.primaryImageURL else { return }
+            thumbnail = await imageCache.thumbnailUIImage(for: url)
         }
     }
 }

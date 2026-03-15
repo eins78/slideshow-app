@@ -64,15 +64,18 @@ struct SlideshowMobileApp: App {
 
         let scanner = FolderScanner()
         do {
-            let slides = try await scanner.scan(folderURL: url)
+            let result = try await scanner.scan(folderURL: url)
             // Revoke previous access only after successful scan
-            let previous = slideshow.folderURL
-            slideshow.folderURL = url
-            slideshow.slides = slides
-            if let first = slides.first {
+            let previousDoc = slideshow.documentURL
+            slideshow.documentURL = result.documentURL
+                ?? url.appendingPathComponent(SlideshowDocument.defaultFilename)
+            slideshow.document = result.document ?? SlideshowDocument()
+            slideshow.slides = result.slides
+            if let first = result.slides.first {
                 slideshow.selectedSlideID = first.id
             }
-            previous?.stopAccessingSecurityScopedResource()
+            previousDoc?.deletingLastPathComponent()
+                .stopAccessingSecurityScopedResource()
         } catch {
             print("[slideshow-mobile] failed to scan folder: \(error)")
             if didStartAccessing {
