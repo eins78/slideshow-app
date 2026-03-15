@@ -18,13 +18,13 @@ public struct SlideshowWriter: Sendable {
             output += "\n\(headerContent)\n"
         }
 
-        // 4. Separator after header (needed even with 0 slides to preserve header
+        // 3. Separator after header (needed even with 0 slides to preserve header
         //    content on round-trip — without it, header content becomes a slide)
         if !document.slides.isEmpty || document.headerContent != nil {
             output += "\n---\n"
         }
 
-        // 5. Slides
+        // 4. Slides
         for (index, slide) in document.slides.enumerated() {
             if index > 0 {
                 output += "\n---\n"
@@ -32,7 +32,7 @@ public struct SlideshowWriter: Sendable {
             writeSlide(slide, to: &output)
         }
 
-        // 6. Trailing separator
+        // 5. Trailing separator
         if !document.slides.isEmpty {
             output += "\n---\n"
         }
