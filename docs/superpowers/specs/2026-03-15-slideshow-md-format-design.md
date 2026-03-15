@@ -170,7 +170,7 @@ Blank lines within notes are fine.
 They remain part of the notes.
 ```
 
-Rich markdown content — paragraphs, lists, tables, code blocks, and H4-H6 headings. This is the presenter-only content, not shown on the audience display. HTML blocks are NOT notes — they become unrecognized content.
+Rich markdown content — paragraphs, lists, tables, and code blocks. This is the presenter-only content, not shown on the audience display. HTML blocks and additional headings (beyond the caption) are NOT notes — they become unrecognized content.
 
 - Can contain blank lines between paragraphs (blank lines do NOT end the notes section)
 - Can contain inline markdown formatting (bold, italic, links) — preserved as-is
