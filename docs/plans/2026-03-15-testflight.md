@@ -4,7 +4,8 @@
 
 ## Status
 
-- **Phase:** Approved
+- **Phase:** Delivered
+- **Delivered:** 2026-03-15
 - **Type:** infra
 - **Sprint:** <!-- optional, filled when plan is added to a sprint -->
 
