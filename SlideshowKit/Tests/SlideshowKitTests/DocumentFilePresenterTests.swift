@@ -96,7 +96,7 @@ struct DocumentFilePresenterTests {
         #expect(count == 1)
     }
 
-    @Test func selfWriteViaCordinatorSuppressesCallback() async throws {
+    @Test func selfWriteViaCoordinatorSuppressesCallback() async throws {
         let dir = try makeTempDir()
         defer { try? FileManager.default.removeItem(at: dir) }
 
