@@ -66,6 +66,7 @@ public struct SlideshowWriter: Sendable {
         output += "---\n"
         if let yaml = try? Yams.dump(
             object: fields as Any,
+            allowUnicode: true,
             sortKeys: true
         ) {
             output += yaml

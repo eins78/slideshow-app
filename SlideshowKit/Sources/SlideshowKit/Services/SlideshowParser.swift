@@ -282,22 +282,27 @@ public struct SlideshowParser: Sendable {
         from paragraph: Paragraph
     ) -> (images: [SlideImage], remainingText: String?) {
         var images: [SlideImage] = []
+        var nonImageChildren: [any InlineMarkup] = []
         var hasNonImageContent = false
 
         for child in paragraph.children {
-            if let image = child as? Image {
-                guard let source = image.source else { continue }
-                // Reject paths with separators or traversal
-                guard !source.contains("/"), !source.contains("\\"),
-                      !source.contains("..") else { continue }
-                // Strip angle brackets if present
+            if let image = child as? Image, let source = image.source,
+               !source.contains("/"), !source.contains("\\"),
+               !source.contains("..") {
+                // Valid local image — extract it
                 let filename = source.trimmingCharacters(in: CharacterSet(charactersIn: "<>"))
                 let altText = image.plainText.isEmpty ? nil : image.plainText
                 images.append(SlideImage(filename: filename, altText: altText))
             } else if child is SoftBreak || child is LineBreak {
-                // Whitespace between images — don't count as content
-                continue
+                // Whitespace — keep for rebuilding but don't count as content
+                if let inline = child as? any InlineMarkup {
+                    nonImageChildren.append(inline)
+                }
             } else {
+                // Non-image content (text, rejected images, etc.) — preserve
+                if let inline = child as? any InlineMarkup {
+                    nonImageChildren.append(inline)
+                }
                 hasNonImageContent = true
             }
         }
@@ -308,10 +313,7 @@ public struct SlideshowParser: Sendable {
         }
 
         if hasNonImageContent {
-            // Mixed paragraph — extract images, return remaining text
-            let nonImageChildren = paragraph.children
-                .filter { !($0 is Image) }
-                .compactMap { $0 as? any InlineMarkup }
+            // Mixed paragraph — extract valid images, preserve everything else
             let rebuilt = Paragraph(nonImageChildren)
             let text = rebuilt.format().trimmingCharacters(in: .whitespacesAndNewlines)
             return (images, text.isEmpty ? nil : text)

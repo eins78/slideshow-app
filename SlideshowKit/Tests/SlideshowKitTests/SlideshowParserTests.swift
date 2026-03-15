@@ -299,6 +299,25 @@ struct SlideshowParserTests {
         #expect(doc.slides[0].images[0].filename == "safe.jpg")
     }
 
+    @Test func rejectedImagePreservedInNotes() {
+        let input = """
+        ---
+        format: https://example.com/slideshow/v1
+        ---
+
+        ---
+
+        Some text ![](../bad.jpg) more text
+
+        ---
+        """
+        let doc = parser.parse(input)
+        // The rejected image's markdown syntax should be preserved in notes
+        #expect(doc.slides[0].images.isEmpty)
+        #expect(doc.slides[0].notes.contains("bad.jpg"))
+        #expect(doc.slides[0].notes.contains("Some text"))
+    }
+
     @Test func parsesUnrecognizedContent() {
         let input = """
         ---
