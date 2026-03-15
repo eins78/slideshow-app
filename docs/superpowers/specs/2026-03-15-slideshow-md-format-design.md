@@ -139,7 +139,7 @@ An H3 heading (`###`) within a slide section. Displayed as the slide's caption/t
 Standard markdown image syntax. References an image file in the same folder as the `.md` file.
 
 - **Filename only** — no paths, no URLs. The image must be in the same directory as the project file.
-- **Alt text** — optional. Used as the accessibility description (VoiceOver). If empty (`![](file.jpg)`), the app falls back to the caption, then the filename.
+- **Alt text** — optional. Used as the accessibility description (VoiceOver). If empty (`![](file.jpg)`), the app falls back to the caption, then the image's own filename (per-image, not per-slide).
 - **Multiple images per slide** — 0 to N images allowed. Each `![](...)` on its own line is a separate image in the slide.
 - **Zero images** — valid. Creates a text-only slide (title card, section divider, placeholder for future image, cue to switch to another app).
 - **Only images referenced in the file are in the show.** Images in the folder but not mentioned in any `![](...)` reference are not part of the presentation. The folder is the library; the file is the curated selection.
@@ -153,10 +153,10 @@ Standard markdown image syntax. References an image file in the same folder as t
 
 Markdown blockquote (`>` prefix). Used for attribution, copyright, provenance.
 
-- Multi-line: each line prefixed with `>`
+- Multi-line: each line prefixed with `>`. A blockquote is contiguous as long as there is no blank line between `>` lines. A blank line between `>` lines starts a new blockquote.
 - First line is the primary credit (displayed on slide); subsequent lines are secondary (shown in detail view)
 - Optional — slides without source are valid
-- At most one blockquote block per slide (first contiguous blockquote wins; others are unknown content)
+- At most one blockquote block per slide (first contiguous blockquote wins; additional blockquotes are treated as unrecognized content)
 
 #### Presenter notes
 
@@ -168,9 +168,9 @@ Blank lines within notes are fine.
 They remain part of the notes.
 ```
 
-Plain text — everything in a slide section that is not a heading, image, blockquote, or recognized markdown structure. This is the presenter-only content, not shown on the audience display.
+Paragraph nodes — text blocks that swift-markdown parses as `Paragraph` elements. This is the presenter-only content, not shown on the audience display. Non-paragraph block elements (tables, code blocks, ordered/unordered lists, HTML blocks) are NOT notes — they become unrecognized content.
 
-- Can contain blank lines (blank lines do NOT end the notes section)
+- Can contain blank lines between paragraphs (blank lines do NOT end the notes section)
 - Can contain inline markdown formatting (bold, italic, links) — preserved as-is
 - Extends until the next `---` separator or `### Unrecognized content` heading
 
@@ -197,23 +197,23 @@ When the app writes back a slide that contained markdown elements it didn't pars
 
 #### Reading
 
-1. **Split on `---`** — divide the file into sections. First section (before first `---` or between frontmatter and first `---`) is the header.
-2. **Parse frontmatter** — if file starts with `---`, parse YAML until closing `---`. Unknown keys preserved.
-3. **Parse header** — extract H1 as title. Remaining text is project-level notes.
-4. **For each slide section**, extract in any order:
-   - First `### Heading` → caption
+1. **Normalize** — CRLF → LF.
+2. **Detect frontmatter** — if the file starts with `---` on line 1, parse YAML until the closing `---`. These two `---` delimiters are consumed and are NOT treated as slide separators. Unknown keys preserved. Malformed YAML → frontmatter ignored, treated as part of the header text. Missing frontmatter → valid file, just no project metadata.
+3. **Parse header** — everything between the frontmatter (or start of file) and the first remaining `---` is the header. Extract the first H1 as title. Remaining paragraphs are project-level notes. Images and blockquotes in the header are treated as project-level content (not slide elements).
+4. **Split remainder on `---`** — divide into slide sections. A trailing `---` followed by only whitespace does not create an empty slide.
+5. **For each slide section**, extract:
+   - The heading `### Unrecognized content` (exact text) → stored as opaque blob. This heading is NEVER treated as a caption, even if it is the first H3.
+   - First other `### Heading` → caption
    - All `![alt](file)` → image references (ordered by appearance)
-   - First contiguous `> blockquote` → source/credit
-   - `### Unrecognized content` section → stored as opaque blob
-   - Remaining plain text → presenter notes
-5. **CRLF normalized to LF** on read.
-6. **Malformed frontmatter** (not valid YAML) → ignored, treated as part of the header text.
-7. **Missing frontmatter** → valid file, just no project metadata.
-8. **Empty file** → valid, zero slides.
+   - First contiguous `> blockquote` → source/credit. Additional blockquotes → unrecognized content.
+   - All `Paragraph` nodes (per swift-markdown) → presenter notes (concatenated in order, preserving blank lines between them)
+   - All other block elements (tables, code blocks, lists, HTML blocks, non-H3 headings) → unrecognized content
+6. **Empty file or whitespace-only file** → valid, zero slides.
+7. **Image filename matching** — case-insensitive. `![](Photo.JPG)` matches `photo.jpg` on disk.
 
 #### Writing
 
-1. **Frontmatter** — write if any machine fields exist. Unknown keys preserved. `Yams.dump(sortKeys: true)`.
+1. **Frontmatter** — write if any machine fields exist. Unknown keys preserved. `Yams.dump(sortedKeys: true)`.
 2. **Title** — write as `# Title` if present.
 3. **For each slide**, write in order:
    - `---` separator
@@ -231,11 +231,13 @@ When the app writes back a slide that contained markdown elements it didn't pars
 5. **Trailing newline** at end of file.
 6. **Atomic writes** — write to temp file, then rename.
 
+**Note on element ordering:** The writer emits elements in a fixed order (caption, images, source, notes, unrecognized). If the user wrote elements in a different order, saving will normalize the order. This is a deliberate design choice — consistent formatting makes the file easier to scan and edit.
+
 ### Opening behavior
 
 The app can open:
 
-1. **A `.md` file directly** — any name. Checks for format frontmatter or valid slide structure. Images are resolved relative to the `.md` file's directory.
+1. **A `.md` file directly** — any name. The file is treated as a slideshow if it has `format:` in its YAML frontmatter matching the known format URL. Files without matching frontmatter are not opened as slideshows (the app shows an error). Images are resolved relative to the `.md` file's directory.
 2. **A folder** — looks for `slideshow.md` in the folder. If found, opens it. If not found, falls back to scanning for images (backward compatibility with folders that have no project file yet).
 
 ### Data model mapping
