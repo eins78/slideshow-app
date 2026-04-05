@@ -10,14 +10,14 @@ struct ContentView: View {
     @State private var hostWindow: NSWindow?
     @State private var previewWidth: CGFloat = 240
 
-    enum ViewMode: String, CaseIterable {
+    enum ViewMode {
         case list, text
     }
 
     var body: some View {
         mainContent
             .background(WindowAccessor(window: $hostWindow))
-            .navigationTitle(slideshow.document.title ?? slideshow.name)
+            .navigationTitle(slideshow.name)
             .navigationSubtitle("\(slideshow.slides.count) slides")
             .toolbar {
                 ToolbarItem(placement: .principal) {
