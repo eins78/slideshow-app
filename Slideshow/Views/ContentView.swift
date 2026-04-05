@@ -3,10 +3,7 @@ import SlideshowKit
 
 struct ContentView: View {
     @Bindable var slideshow: Slideshow
-    @Binding var showPresenter: Bool
     @State private var viewMode: ViewMode = .list
-    @State private var searchText = ""
-    @State private var showImageImporter = false
     @State private var isTextDirty = false
     @State private var saveTrigger = false
     @State private var pendingViewMode: ViewMode?
@@ -14,60 +11,30 @@ struct ContentView: View {
     @State private var previewWidth: CGFloat = 240
 
     enum ViewMode: String, CaseIterable {
-        case list, grid, text
+        case list, text
     }
 
     var body: some View {
         mainContent
             .background(WindowAccessor(window: $hostWindow))
-            .navigationTitle(slideshow.name)
+            .navigationTitle(slideshow.document.title ?? slideshow.name)
             .navigationSubtitle("\(slideshow.slides.count) slides")
-            .searchable(text: $searchText, prompt: "Filter slides")
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Picker("View Mode", selection: viewModeBinding) {
                         Image(systemName: "list.bullet")
                             .tag(ViewMode.list)
                             .accessibilityLabel("List view")
-                        Image(systemName: "square.grid.2x2")
-                            .tag(ViewMode.grid)
-                            .accessibilityLabel("Grid view")
                         Image(systemName: "doc.plaintext")
                             .tag(ViewMode.text)
                             .accessibilityLabel("Text view")
                     }
                     .pickerStyle(.segmented)
-                    .frame(width: 120)
+                    .frame(width: 80)
                     .accessibilityLabel("View Mode")
-                }
-
-                ToolbarItem(placement: .automatic) {
-                    Button("Present", systemImage: "play.fill") {
-                        showPresenter = true
-                    }
-                    .accessibilityIdentifier("presentButton")
-                    .keyboardShortcut("p", modifiers: [.command, .shift])
-                    .disabled(slideshow.slides.isEmpty)
-                }
-
-                ToolbarItem(placement: .automatic) {
-                    Button("Add Images", systemImage: "plus") {
-                        showImageImporter = true
-                    }
-                    .accessibilityIdentifier("addImagesButton")
-                    .keyboardShortcut("i", modifiers: [.command, .shift])
                 }
             }
             .focusedSceneValue(\.saveAction, saveAction)
-            .fileImporter(
-                isPresented: $showImageImporter,
-                allowedContentTypes: [.image],
-                allowsMultipleSelection: true
-            ) { result in
-                if case .success(let urls) = result {
-                    slideshow.addImages(from: urls)
-                }
-            }
             .onChange(of: isTextDirty) {
                 if !isTextDirty, let pending = pendingViewMode {
                     viewMode = pending
@@ -104,14 +71,11 @@ struct ContentView: View {
     @ViewBuilder
     private var mainContent: some View {
         if slideshow.slides.isEmpty {
-            ContentUnavailableView {
-                Label("No Images", systemImage: "photo.on.rectangle")
-            } description: {
-                Text("Add images to start building your slideshow.")
-            } actions: {
-                Button("Add Images...") { showImageImporter = true }
-                    .buttonStyle(.borderedProminent)
-            }
+            ContentUnavailableView(
+                "No Images",
+                systemImage: "photo.on.rectangle",
+                description: Text("Open a folder of images to start a slideshow.")
+            )
         } else {
             GeometryReader { geometry in
                 HStack(spacing: 0) {
@@ -127,7 +91,6 @@ struct ContentView: View {
                     SlideListPanel(
                         slideshow: slideshow,
                         viewMode: viewMode,
-                        searchText: searchText,
                         isDirty: $isTextDirty,
                         saveTrigger: $saveTrigger,
                         hostWindow: hostWindow
@@ -140,7 +103,7 @@ struct ContentView: View {
 }
 
 #Preview("Content — Empty") {
-    ContentView(slideshow: Slideshow(), showPresenter: .constant(false))
+    ContentView(slideshow: Slideshow())
         .frame(width: 900, height: 600)
 }
 
@@ -154,6 +117,6 @@ struct ContentView: View {
     for slide in slides { slide.fileSize = 2_500_000 }
     slideshow.slides = slides
     slideshow.selectedSlideID = slides[1].id
-    return ContentView(slideshow: slideshow, showPresenter: .constant(false))
+    return ContentView(slideshow: slideshow)
         .frame(width: 900, height: 600)
 }

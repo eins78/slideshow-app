@@ -81,8 +81,6 @@ struct SlideshowDocumentView: View {
     @State private var slideshow = Slideshow()
     @State private var showFileImporter = false
     @State private var showNewSlideshowPanel = false
-    @State private var showPresenter = false
-    @State private var presenterWindow: NSWindow?
     @State private var bookmarkManager = BookmarkManager()
     @State private var scanError: Error?
     @Environment(\.imageCache) private var imageCache
@@ -90,7 +88,7 @@ struct SlideshowDocumentView: View {
     var body: some View {
         Group {
             if slideshow.folderURL != nil {
-                ContentView(slideshow: slideshow, showPresenter: $showPresenter)
+                ContentView(slideshow: slideshow)
             } else {
                 WelcomeView(
                     onOpen: { showFileImporter = true }
@@ -121,11 +119,6 @@ struct SlideshowDocumentView: View {
                 Task { await openSlideshow(at: url) }
             }
         }
-        .onChange(of: showPresenter) {
-            if showPresenter {
-                openPresenterWindow()
-            }
-        }
         .alert("Could not open slideshow", isPresented: Binding(
             get: { scanError != nil },
             set: { if !$0 { scanError = nil } }
@@ -153,46 +146,6 @@ struct SlideshowDocumentView: View {
                 await openSlideshow(at: url)
             }
         }
-    }
-
-    private func openPresenterWindow() {
-        // Close existing presenter window if open
-        presenterWindow?.close()
-
-        let presenterView = PresenterView(slideshow: slideshow)
-            .environment(\.imageCache, imageCache)
-
-        let hostingView = NSHostingView(rootView: presenterView)
-        let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 900, height: 600),
-            styleMask: [.titled, .closable, .resizable, .fullSizeContentView],
-            backing: .buffered,
-            defer: false
-        )
-        window.contentView = hostingView
-        window.title = "Presenter — \(slideshow.name)"
-        window.titlebarAppearsTransparent = true
-        window.titleVisibility = .hidden
-        window.backgroundColor = .black
-        window.center()
-        window.makeKeyAndOrderFront(nil)
-
-        // Reset showPresenter when window closes.
-        // Queue is .main so the closure runs on the main thread;
-        // MainActor.assumeIsolated is safe here.
-        // See: https://developer.apple.com/documentation/swift/mainactor/assumeisolated(_:file:line:)-swift.type.method
-        NotificationCenter.default.addObserver(
-            forName: NSWindow.willCloseNotification,
-            object: window,
-            queue: .main
-        ) { _ in
-            MainActor.assumeIsolated {
-                showPresenter = false
-                presenterWindow = nil
-            }
-        }
-
-        presenterWindow = window
     }
 
     /// Load test fixtures for UI testing — copies an example slideshow to a temp dir.
