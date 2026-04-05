@@ -1,6 +1,35 @@
 # Agent Workflow — Mandatory for All Swift Code
 
-This rule file is the authoritative reference for when and how to use swift-agents specialists. It is NOT optional. Skipping it is a workflow violation.
+This rule file is the authoritative reference for when and how to use swift-agents specialists, plot planning, and superpowers skills. It is NOT optional. Skipping it is a workflow violation.
+
+## CRITICAL: Plot + Superpowers for non-trivial work
+
+**Non-trivial** = any feature, refactor, or bug fix spanning more than one file or requiring design decisions. When in doubt, treat it as non-trivial.
+
+### Required sequence for non-trivial tasks
+
+1. **Brainstorm** — run `Skill(superpowers:brainstorming)` before any planning or coding
+2. **Plan** — run `/plot-idea` (creates an idea branch + draft PR with a plan file)
+3. **Approve** — get the plan reviewed, then `/plot-approve` (merges plan, creates impl branches)
+4. **Execute** — use `Skill(superpowers:executing-plans)` to work through the plan systematically
+5. **Deliver** — `/plot-deliver` when all impl PRs are merged
+
+### What counts as non-trivial
+
+- New features (any size)
+- Changes touching more than one file in a meaningful way
+- Architectural decisions (new types, changed data flow, new protocols)
+- Anything with design uncertainty ("how should we...?")
+
+### What is trivial (no plot required)
+
+- Single-line bug fixes with obvious solutions
+- Updating a comment or documentation string in one file
+- Mechanical refactors explicitly scoped by the user ("rename X to Y everywhere")
+
+**Common rationalization to reject:** "This is small enough to skip planning." Planning costs 5 minutes. Reworking an unplanned implementation costs hours. Plan first.
+
+---
 
 ## CRITICAL: Swift-agents are mandatory
 
