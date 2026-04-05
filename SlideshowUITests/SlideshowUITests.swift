@@ -35,11 +35,12 @@ final class SlideshowUITests: XCTestCase {
         app.launchArguments = ["--ui-test-fixtures"]
         app.launch()
 
-        // Verify a caption from the example sidecar is visible
-        // "Paintings That Tell Secrets" has "The Night Watch" as first slide caption
-        let nightWatch = app.staticTexts["The Night Watch"]
-        XCTAssertTrue(nightWatch.waitForExistence(timeout: 10),
-                       "Should show 'The Night Watch' caption from example sidecar")
+        // Verify multiple slide captions are visible — confirms the full sidecar was parsed.
+        // "Paintings That Tell Secrets" has The Night Watch, The Love Letter, The Starry Night.
+        XCTAssertTrue(app.staticTexts["The Night Watch"].firstMatch.waitForExistence(timeout: 10),
+                       "Should show 'The Night Watch' caption")
+        XCTAssertTrue(app.staticTexts["The Love Letter"].firstMatch.waitForExistence(timeout: 5),
+                       "Should show 'The Love Letter' caption — confirms multiple slides parsed")
     }
 
     func testSlideSelection() throws {
