@@ -35,24 +35,20 @@ public struct SlideshowParser: Sendable {
             }
         }
 
-        // Step 5: Parse header and slides
-        let title: String?
+        // Step 5: Title comes from frontmatter, not from H1 in body
+        let title = frontmatter[SlideshowDocument.titleKey]
         let headerContent: String?
         let slides: [SlideSection]
 
         if !hasAnySeparators {
-            // No separators: header is first H1 only, rest is single slide
+            // No separators: all content is a single slide
             let allNodes = allSections.flatMap { $0 }
-            let (parsedTitle, _, slideNodes) = parseHeaderNoSeparators(allNodes)
-            title = parsedTitle
             headerContent = nil
-            slides = slideNodes.isEmpty ? [] : [parseSlideSection(slideNodes)]
+            slides = allNodes.isEmpty ? [] : [parseSlideSection(allNodes)]
         } else {
             // Normal case: section 0 is header, sections 1+ are slides
             let headerNodes = allSections[0]
-            let (parsedTitle, parsedHeader) = parseHeader(headerNodes)
-            title = parsedTitle
-            headerContent = parsedHeader
+            headerContent = parseHeader(headerNodes)
 
             // Discard empty slide sections (from leading/trailing ---)
             let slideSections = Array(allSections.dropFirst()).filter { section in
@@ -141,51 +137,13 @@ public struct SlideshowParser: Sendable {
     // MARK: - Header
 
     /// Parse the header section (before first ---). Used when separators exist.
-    private func parseHeader(
-        _ nodes: [any Markup]
-    ) -> (title: String?, headerContent: String?) {
-        guard !nodes.isEmpty else { return (nil, nil) }
+    /// Returns the header content as an opaque blob, or nil if empty.
+    private func parseHeader(_ nodes: [any Markup]) -> String? {
+        guard !nodes.isEmpty else { return nil }
 
-        var title: String?
-        var contentNodes: [any Markup] = []
-
-        for node in nodes {
-            if title == nil, let heading = node as? Heading, heading.level == 1 {
-                title = heading.plainText
-            } else {
-                contentNodes.append(node)
-            }
-        }
-
-        let headerContent: String?
-        if contentNodes.isEmpty {
-            headerContent = nil
-        } else {
-            let text = contentNodes.map { $0.format() }.joined(separator: "\n\n")
-            let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-            headerContent = trimmed.isEmpty ? nil : trimmed
-        }
-
-        return (title, headerContent)
-    }
-
-    /// Parse header when no `---` separators exist.
-    /// Header is limited to H1 only. Everything else becomes slide content.
-    private func parseHeaderNoSeparators(
-        _ nodes: [any Markup]
-    ) -> (title: String?, headerContent: String?, slideNodes: [any Markup]) {
-        var title: String?
-        var slideNodes: [any Markup] = []
-
-        for node in nodes {
-            if title == nil, let heading = node as? Heading, heading.level == 1 {
-                title = heading.plainText
-            } else {
-                slideNodes.append(node)
-            }
-        }
-
-        return (title, nil, slideNodes)
+        let text = nodes.map { $0.format() }.joined(separator: "\n\n")
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 
     // MARK: - Slide Section

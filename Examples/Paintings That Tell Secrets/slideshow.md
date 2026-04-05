@@ -1,12 +1,11 @@
 ---
 format: https://example.com/slideshow/v1
+title: Paintings That Tell Secrets
 ---
 
-# Paintings That Tell Secrets
-
 ---
 
-### The Night Watch
+# The Night Watch
 
 ![](night-watch.jpg)
 
@@ -25,7 +24,7 @@ The painting is so important it has its own room at the Rijksmuseum.
 
 ---
 
-### The Love Letter
+# The Love Letter
 
 ![](love-letter.jpg)
 
@@ -43,7 +42,7 @@ Vermeer hid the answer to the letter in the background.
 
 ---
 
-### The Starry Night
+# The Starry Night
 
 ![](starry-night.jpg)
 

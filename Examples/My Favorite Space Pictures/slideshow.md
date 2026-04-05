@@ -1,12 +1,11 @@
 ---
 format: https://example.com/slideshow/v1
+title: My Favorite Space Pictures
 ---
 
-# My Favorite Space Pictures
-
 ---
 
-### The Blue Marble
+# The Blue Marble
 
 ![](blue-marble.jpg)
 
@@ -23,7 +22,7 @@ and floating in nothing.
 
 ---
 
-### Pillars of Creation
+# Pillars of Creation
 
 ![](pillars-of-creation.jpg)
 
@@ -40,7 +39,7 @@ could drive a car at highway speed, it would take you about
 
 ---
 
-### The Greatest Saturn Portrait
+# The Greatest Saturn Portrait
 
 ![](saturn.jpg)
 
@@ -57,7 +56,7 @@ wide but really thin, like a DVD that's 100,000 kilometers across.
 
 ---
 
-### Cosmic Cliffs
+# Cosmic Cliffs
 
 ![](cosmic-cliffs.jpg)
 
@@ -74,7 +73,7 @@ with infrared light, so it found stars that nobody had ever seen before.
 
 ---
 
-### Crab Nebula
+# Crab Nebula
 
 ![](crab-nebula.jpg)
 
@@ -91,7 +90,7 @@ second — it's the dead core of the star that exploded.
 
 ---
 
-### Andromeda Galaxy
+# Andromeda Galaxy
 
 ![](andromeda.jpg)
 
@@ -108,7 +107,7 @@ on a dark night — it's 2.5 million light-years away.
 
 ---
 
-### Hubble Deep Field
+# Hubble Deep Field
 
 ![](hubble-deep-field.jpg)
 
@@ -126,7 +125,7 @@ how big the universe is.
 
 ---
 
-### Sunset on Mars
+# Sunset on Mars
 
 ![](mars-sunset.jpg)
 
@@ -144,7 +143,7 @@ because Mars is farther away from it than we are.
 
 ---
 
-### Ingenuity Helicopter on Mars
+# Ingenuity Helicopter on Mars
 
 ![](ingenuity.jpg)
 
@@ -161,7 +160,7 @@ places the rover couldn't reach and helped plan driving routes.
 
 ---
 
-### Pluto Close-Up
+# Pluto Close-Up
 
 ![](pluto.jpg)
 
