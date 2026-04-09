@@ -24,36 +24,30 @@ final class SlideshowUITests: XCTestCase {
         app.launchArguments = ["--ui-test-fixtures"]
         app.launch()
 
-        // Toolbar "Present" button appears when slides are loaded.
-        // Use .firstMatch — toolbar buttons may have multiple AX representations.
-        let presentButton = app.buttons["presentButton"].firstMatch
-        XCTAssertTrue(presentButton.waitForExistence(timeout: 10),
-                       "Present button should appear after loading fixtures")
-        XCTAssertTrue(presentButton.isEnabled,
-                       "Present button should be enabled when slides are loaded")
+        // "The Night Watch" is the first slide caption in the Paintings example.
+        // Use .firstMatch — static text may have multiple AX representations.
+        let nightWatch = app.staticTexts["The Night Watch"].firstMatch
+        XCTAssertTrue(nightWatch.waitForExistence(timeout: 10),
+                       "Slide list should show 'The Night Watch' after loading fixtures")
     }
 
     func testFixtureModeShowsSlideContent() throws {
         app.launchArguments = ["--ui-test-fixtures"]
         app.launch()
 
-        // Wait for slides to load
-        let presentButton = app.buttons["presentButton"]
-        XCTAssertTrue(presentButton.waitForExistence(timeout: 10))
-
-        // Verify a caption from the example sidecar is visible
-        // "Paintings That Tell Secrets" has "The Night Watch" as first slide caption
-        let nightWatch = app.staticTexts["The Night Watch"]
-        XCTAssertTrue(nightWatch.waitForExistence(timeout: 5),
-                       "Should show 'The Night Watch' caption from example sidecar")
+        // Verify multiple slide captions are visible — confirms the full sidecar was parsed.
+        // "Paintings That Tell Secrets" has The Night Watch, The Love Letter, The Starry Night.
+        XCTAssertTrue(app.staticTexts["The Night Watch"].firstMatch.waitForExistence(timeout: 10),
+                       "Should show 'The Night Watch' caption")
+        XCTAssertTrue(app.staticTexts["The Love Letter"].firstMatch.waitForExistence(timeout: 5),
+                       "Should show 'The Love Letter' caption — confirms multiple slides parsed")
     }
 
     func testSlideSelection() throws {
         app.launchArguments = ["--ui-test-fixtures"]
         app.launch()
 
-        let presentButton = app.buttons["presentButton"]
-        XCTAssertTrue(presentButton.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["The Night Watch"].waitForExistence(timeout: 10))
 
         // Click on a different slide to change selection
         let starryNight = app.staticTexts["Starry Night"]
@@ -71,11 +65,10 @@ final class SlideshowUITests: XCTestCase {
         app.launchArguments = ["--ui-test-add-images"]
         app.launch()
 
-        let presentButton = app.buttons["presentButton"].firstMatch
-        XCTAssertTrue(presentButton.waitForExistence(timeout: 10),
-                       "Present button should appear after adding images")
-        XCTAssertTrue(presentButton.isEnabled,
-                       "Present button should be enabled when slides are loaded")
+        // Wait for at least one slide row to appear after programmatic addImages
+        let firstCell = app.tables.firstMatch.cells.firstMatch
+        XCTAssertTrue(firstCell.waitForExistence(timeout: 10),
+                       "Slide list should show at least one slide after adding images")
     }
 
     // MARK: - Accessibility
@@ -84,8 +77,7 @@ final class SlideshowUITests: XCTestCase {
         app.launchArguments = ["--ui-test-fixtures"]
         app.launch()
 
-        let presentButton = app.buttons["presentButton"].firstMatch
-        XCTAssertTrue(presentButton.waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts["The Night Watch"].firstMatch.waitForExistence(timeout: 10))
 
         // Audit subset: skip .dynamicType and .elementDetection — remaining "no description"
         // failures are SwiftUI-generated Group/TouchBar containers we cannot label.

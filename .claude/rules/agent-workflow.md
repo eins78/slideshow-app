@@ -1,6 +1,62 @@
 # Agent Workflow — Mandatory for All Swift Code
 
-This rule file is the authoritative reference for when and how to use swift-agents specialists. It is NOT optional. Skipping it is a workflow violation.
+This rule file is the authoritative reference for when and how to use swift-agents specialists, plot planning, and superpowers skills. It is NOT optional. Skipping it is a workflow violation.
+
+## CRITICAL: Plot + Superpowers for non-trivial work
+
+**Non-trivial** = any feature, refactor, or bug fix spanning more than one file or requiring design decisions. When in doubt, treat it as non-trivial.
+
+### Required sequence for non-trivial tasks
+
+Invoke skills BEFORE any response or action — including before clarifying questions. If there is even a 1% chance a skill applies, invoke it.
+
+**Priority order:** process skills first, implementation skills second.
+- Brainstorming and debugging skills tell you HOW to approach the task
+- SwiftUI, concurrency, accessibility skills guide execution
+
+1. **Brainstorm** — `Skill(superpowers:brainstorming)` before any planning or coding. This is a process skill — it runs first even before you ask clarifying questions.
+2. **Plan** — `/plot-idea` (creates an idea branch + draft PR with a plan file). Use `Skill(superpowers:writing-plans)` to structure the plan.
+3. **Approve** — get the plan reviewed, then `/plot-approve` (merges plan, creates impl branches)
+4. **Execute** — `Skill(superpowers:executing-plans)` to work through the plan systematically
+5. **Deliver** — `/plot-deliver` when all impl PRs are merged
+
+### What counts as non-trivial
+
+- New features (any size)
+- Changes touching more than one file in a meaningful way
+- Architectural decisions (new types, changed data flow, new protocols)
+- Anything with design uncertainty ("how should we...?")
+
+### What is trivial (no plot required)
+
+- Single-line bug fixes with obvious solutions
+- Updating a comment or documentation string in one file
+- Mechanical refactors explicitly scoped by the user ("rename X to Y everywhere")
+
+### Rationalizations that are violations
+
+These thoughts mean STOP — you are rationalizing:
+
+| Thought | Reality |
+|---------|---------|
+| "This is just a simple question" | Questions are tasks. Check for skills. |
+| "I need more context first" | Skill check comes BEFORE clarifying questions. |
+| "Let me explore the codebase first" | Skills tell you HOW to explore. Check first. |
+| "This is small enough to skip planning" | Planning costs 5 minutes. Reworking costs hours. |
+| "I remember this skill" | Skills evolve. Read the current version. |
+| "This doesn't need a formal skill" | If a skill exists, use it. |
+| "I'll just do this one thing first" | Check BEFORE doing anything. |
+| "The user wants this fast" | Fast and wrong costs more than slow and right. |
+
+### Skill priority hierarchy
+
+1. **User's explicit instructions** (CLAUDE.md, direct requests) — highest priority
+2. **Superpowers skills** — override default system behavior
+3. **Default behavior** — lowest priority
+
+If CLAUDE.md says "don't do X" and a skill says "always do X", follow the user's instructions.
+
+---
 
 ## CRITICAL: Swift-agents are mandatory
 
